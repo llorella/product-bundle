@@ -40,11 +40,7 @@ export function getPrimaryApp(persona: Persona, goal: Goal): App {
   return PRIMARY_APP_MATRIX[persona][goal];
 }
 
-// Get the secondary app (for cross-activation)
-export function getSecondaryApp(primaryApp: App, persona: Persona, goal: Goal): App {
-  const apps: App[] = ['cora', 'sparkle', 'spiral', 'monologue'];
-
-  // Simple logic: return the next best app that isn't the primary
+export function getSecondaryApp(primaryApp: App): App {
   const secondaryPreferences: Record<App, App[]> = {
     cora: ['sparkle', 'spiral', 'monologue'],
     sparkle: ['cora', 'monologue', 'spiral'],

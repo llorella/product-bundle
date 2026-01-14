@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Every A/B Demo
 
-## Getting Started
+A cloneable demo implementing an A/B experiment for single-path onboarding at Every.
 
-First, run the development server:
+## The Experiment
+
+**Hypothesis**: Routing new signups into ONE primary app (based on survey answers) and guiding them to a "first win" will increase activation rates and reduce time to first value.
+
+| Variant | Experience |
+|---------|------------|
+| Control | Shows 2 recommended apps, user chooses which to try |
+| Treatment | Single app assignment + guided first-win task |
+
+## Quick Start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Routes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Route | Purpose |
+|-------|---------|
+| `/` | Landing page |
+| `/signup` | Signup flow with variant override toggle |
+| `/survey` | Persona + goal questions |
+| `/recs` | Control: multi-app recommendations |
+| `/start` | Treatment: single-path onboarding |
+| `/app/[name]` | Mock app with first-win task |
+| `/bundle` | Checklist and app directory |
+| `/dashboard` | Metrics and experiment results |
 
-## Learn More
+## Key Metrics
 
-To learn more about Next.js, take a look at the following resources:
+- **Activation_24h**: % of users completing first win within 24h
+- **TTFV**: Time to first value (seconds)
+- **CrossActivation_7d**: % trying a second app within 7 days
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Architecture
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+├── app/                    # Next.js pages
+├── lib/
+│   ├── types.ts           # Type definitions
+│   ├── store.ts           # Zustand state management
+│   ├── events.ts          # Event tracking
+│   ├── assignment.ts      # Variant assignment
+│   └── primary-app.ts     # Persona→App mapping matrix
+```
 
-## Deploy on Vercel
+## Primary App Matrix
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Survey answers map to a single primary app:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Persona × Goal | productive | automate | write | trends |
+|----------------|------------|----------|-------|--------|
+| founder | Cora | Cora | Spiral | Monologue |
+| builder | Sparkle | Sparkle | Spiral | Monologue |
+| writer | Monologue | Spiral | Spiral | Spiral |
+| designer | Sparkle | Sparkle | Spiral | Monologue |
+| curious | Monologue | Cora | Spiral | Monologue |
+
+## Testing the Flow
+
+1. Go to `/signup`
+2. Enter email, select variant (Treatment recommended)
+3. Complete survey
+4. Treatment users see single app + first-win task
+5. Complete task, see cross-activation prompt
+6. View results at `/dashboard`
+
+## Synthetic Data
+
+The dashboard includes a cohort generator that creates synthetic users with realistic conversion rates to demonstrate expected lift.
+
+## Tech Stack
+
+- Next.js 14 (App Router)
+- TypeScript
+- Tailwind CSS
+- Zustand (state)
+- Recharts (visualization)

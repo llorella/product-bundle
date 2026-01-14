@@ -1,6 +1,5 @@
 import { Variant, Persona, Goal, App } from './types';
 
-// Base event interface
 interface BaseEvent {
   event_id: string;
   timestamp: string;
@@ -9,7 +8,6 @@ interface BaseEvent {
   variant: Variant;
 }
 
-// Event types
 export type EventType =
   | 'signup_completed'
   | 'survey_started'
@@ -27,7 +25,6 @@ export type EventType =
   | 'help_requested'
   | 'error_occurred';
 
-// Event payloads
 interface SignupCompletedPayload {
   entry_point: string;
   utm_source?: string;
@@ -87,7 +84,6 @@ interface ErrorPayload {
   help_type?: 'tooltip' | 'faq' | 'support';
 }
 
-// Full event type
 export type Event = BaseEvent & (
   | { event: 'signup_completed'; payload: SignupCompletedPayload }
   | { event: 'survey_started'; payload: Record<string, never> }
@@ -106,14 +102,12 @@ export type Event = BaseEvent & (
   | { event: 'error_occurred'; payload: ErrorPayload }
 );
 
-// Event storage (in-memory for demo, persisted to localStorage)
 const EVENTS_KEY = 'every_demo_events';
 
 function generateEventId(): string {
   return 'evt_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 }
 
-// Get all events from storage
 export function getAllEvents(): Event[] {
   if (typeof window === 'undefined') return [];
   const stored = localStorage.getItem(EVENTS_KEY);
@@ -125,7 +119,6 @@ export function getAllEvents(): Event[] {
   }
 }
 
-// Track an event
 export function trackEvent(
   eventType: EventType,
   userId: string,
@@ -143,40 +136,32 @@ export function trackEvent(
     payload,
   } as Event;
 
-  // Store event
   if (typeof window !== 'undefined') {
     const events = getAllEvents();
     events.push(event);
     localStorage.setItem(EVENTS_KEY, JSON.stringify(events));
   }
 
-  // Log to console in development
   console.log('Event tracked:', event);
-
   return event;
 }
 
-// Clear all events (for demo reset)
 export function clearAllEvents(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(EVENTS_KEY);
   }
 }
 
-// Alias for dashboard
 export const clearEvents = clearAllEvents;
 
-// Get events for a specific user
 export function getUserEvents(userId: string): Event[] {
   return getAllEvents().filter(e => e.user_id === userId);
 }
 
-// Get events by type
 export function getEventsByType(eventType: EventType): Event[] {
   return getAllEvents().filter(e => e.event === eventType);
 }
 
-// Export events as JSONL
 export function exportEventsAsJSONL(): string {
   return getAllEvents().map(e => JSON.stringify(e)).join('\n');
 }

@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useStore } from '@/lib/store';
-import { PERSONAS, GOALS, Persona, Goal } from '@/lib/types';
+import { PERSONAS, GOALS } from '@/lib/types';
 
 export default function SurveyPage() {
   const router = useRouter();
@@ -24,16 +24,9 @@ export default function SurveyPage() {
   }
 
   const handleContinue = () => {
-    if (surveyStep === 1 && selectedPersona) {
-      // Move to step 2 already handled by setPersona
-    } else if (surveyStep === 2 && selectedGoal) {
+    if (surveyStep === 2 && selectedGoal) {
       completeSurvey();
-      // Route based on variant
-      if (user.variant === 'treatment') {
-        router.push('/start');
-      } else {
-        router.push('/recs');
-      }
+      router.push(user.variant === 'treatment' ? '/start' : '/recs');
     }
   };
 

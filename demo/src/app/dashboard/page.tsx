@@ -10,14 +10,11 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from 'recharts';
 import { getAllEvents, clearEvents } from '@/lib/events';
+import { useStore } from '@/lib/store';
 
-// Simplified Event interface for dashboard display
-export interface Event {
+interface Event {
   id: string;
   type: string;
   userId: string;
@@ -26,7 +23,6 @@ export interface Event {
   timestamp: string;
   payload: Record<string, unknown>;
 }
-import { useStore } from '@/lib/store';
 
 interface CohortMetrics {
   variant: 'control' | 'treatment';
@@ -212,24 +208,8 @@ export default function DashboardPage() {
     const controlEvents = generateSyntheticCohort('control', cohortSize);
     const treatmentEvents = generateSyntheticCohort('treatment', cohortSize);
     const newEvents = [...events, ...controlEvents, ...treatmentEvents];
-
-    // Store in localStorage
     localStorage.setItem('every_demo_events', JSON.stringify(newEvents));
     setEvents(newEvents);
-  };
-
-  const refreshEvents = () => {
-    const rawEvents = getAllEvents();
-    const transformed: Event[] = rawEvents.map((e: Record<string, unknown>) => ({
-      id: (e.id || e.event_id || '') as string,
-      type: (e.type || e.event || '') as string,
-      userId: (e.userId || e.user_id || '') as string,
-      sessionId: (e.sessionId || e.session_id || '') as string,
-      variant: (e.variant || 'control') as 'control' | 'treatment',
-      timestamp: (e.timestamp || '') as string,
-      payload: (e.payload || {}) as Record<string, unknown>,
-    }));
-    setEvents(transformed);
   };
 
   const handleClearData = () => {

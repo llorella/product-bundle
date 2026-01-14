@@ -1,17 +1,5 @@
-// Core types for the Every A/B Demo
-
-export type Persona =
-  | 'founder'      // Founder/entrepreneur/investor
-  | 'builder'      // Builder/engineer
-  | 'writer'       // Writer/creator
-  | 'designer'     // Designer
-  | 'curious';     // Just curious about AI
-
-export type Goal =
-  | 'productive'   // Be more productive
-  | 'automate'     // Automate workflows
-  | 'write'        // Write with more confidence
-  | 'trends';      // Stay ahead of AI trends
+export type Persona = 'founder' | 'builder' | 'writer' | 'designer' | 'curious';
+export type Goal = 'productive' | 'automate' | 'write' | 'trends';
 
 export type App = 'cora' | 'sparkle' | 'spiral' | 'monologue';
 
@@ -96,7 +84,6 @@ export const GOALS: { value: Goal; label: string }[] = [
   { value: 'trends', label: 'Stay ahead of AI trends' },
 ];
 
-// Checklist items
 export interface ChecklistItem {
   id: string;
   category: 'product' | 'content' | 'community' | 'expansion';

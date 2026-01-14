@@ -52,7 +52,6 @@ export const useStore = create<AppState>()(
       firstWinApp: null,
       crossActivationShown: false,
 
-      // Initialize user with email
       initUser: (email: string, forcedVariant?: Variant) => {
         const userId = generateUserId();
         const variant = forcedVariant ?? getVariant(userId);
@@ -72,29 +71,23 @@ export const useStore = create<AppState>()(
         });
       },
 
-      // Set persona from survey
       setPersona: (persona: Persona) => {
         set({ selectedPersona: persona, surveyStep: 2 });
-
         const { user, sessionId } = get();
         if (user) {
           trackEvent('survey_started', user.id, sessionId, user.variant, {});
         }
       },
 
-      // Set goal from survey
       setGoal: (goal: Goal) => {
         set({ selectedGoal: goal });
       },
 
-      // Complete survey and assign primary app
       completeSurvey: () => {
         const { user, sessionId, selectedPersona, selectedGoal } = get();
         if (!user || !selectedPersona || !selectedGoal) return;
 
         const primaryApp = getPrimaryApp(selectedPersona, selectedGoal);
-
-        // Update user with survey data
         const updatedUser: User = {
           ...user,
           persona: selectedPersona,
@@ -104,14 +97,12 @@ export const useStore = create<AppState>()(
 
         set({ user: updatedUser, primaryApp });
 
-        // Track survey completion
         trackEvent('survey_completed', user.id, sessionId, user.variant, {
           persona: selectedPersona,
           goal: selectedGoal,
           skipped_questions: 0,
         });
 
-        // Track primary app assignment (treatment only)
         if (user.variant === 'treatment') {
           trackEvent('primary_app_assigned', user.id, sessionId, user.variant, {
             primary_app: primaryApp,
@@ -120,19 +111,14 @@ export const useStore = create<AppState>()(
         }
       },
 
-      // Start first win task
       startFirstWin: (app: App) => {
         const { user, sessionId } = get();
         if (!user) return;
 
         set({ firstWinStartedAt: new Date().toISOString() });
-
-        trackEvent('first_win_started', user.id, sessionId, user.variant, {
-          app,
-        });
+        trackEvent('first_win_started', user.id, sessionId, user.variant, { app });
       },
 
-      // Complete first win task
       completeFirstWin: (app: App, taskType: string) => {
         const { user, sessionId, firstWinStartedAt, completedItems } = get();
         if (!user || !firstWinStartedAt) return;
@@ -142,11 +128,9 @@ export const useStore = create<AppState>()(
         const endTime = new Date(completedAt).getTime();
         const timeToValue = Math.round((endTime - startTime) / 1000);
 
-        // Mark the app's checklist item as completed
-        const appItemId = app;
-        const newCompletedItems = completedItems.includes(appItemId)
+        const newCompletedItems = completedItems.includes(app)
           ? completedItems
-          : [...completedItems, appItemId];
+          : [...completedItems, app];
 
         set({
           firstWinCompletedAt: completedAt,
@@ -161,22 +145,19 @@ export const useStore = create<AppState>()(
         });
       },
 
-      // Mark checklist item as completed
       markItemCompleted: (itemId: string) => {
         const { user, sessionId, completedItems } = get();
         if (!user) return;
 
         if (!completedItems.includes(itemId)) {
           set({ completedItems: [...completedItems, itemId] });
-
           trackEvent('checklist_item_clicked', user.id, sessionId, user.variant, {
             item_id: itemId,
-            item_category: 'product', // Simplified for demo
+            item_category: 'product',
           });
         }
       },
 
-      // Toggle checklist item (for bundle page)
       toggleChecklistItem: (itemId: string) => {
         const { completedItems } = get();
         if (completedItems.includes(itemId)) {
@@ -186,14 +167,12 @@ export const useStore = create<AppState>()(
         }
       },
 
-      // Show cross-activation prompt
       showCrossActivation: () => {
         const { user, sessionId, primaryApp, crossActivationShown } = get();
         if (!user || !primaryApp || crossActivationShown) return;
 
         set({ crossActivationShown: true });
 
-        // Get secondary app for cross-activation
         const secondaryApps: Record<App, App> = {
           cora: 'sparkle',
           sparkle: 'monologue',
@@ -208,7 +187,6 @@ export const useStore = create<AppState>()(
         });
       },
 
-      // Reset all state
       reset: () => {
         set({
           user: null,
