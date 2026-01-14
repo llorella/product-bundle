@@ -1,7 +1,52 @@
 import { Persona, Goal, App } from './types';
 
-// Matrix mapping (persona, goal) → primary app
-// This is the core of the single-path routing logic
+/**
+ * PRIMARY APP ASSIGNMENT MATRIX
+ * =============================
+ *
+ * Status: HYPOTHESIS - To be validated with experiment data
+ *
+ * This matrix maps (persona, goal) combinations to a single primary app.
+ * It is the core of the Treatment variant's single-path routing.
+ *
+ * RATIONALE FOR ASSIGNMENTS:
+ *
+ * | Persona   | Goal        | App       | Why                                      |
+ * |-----------|-------------|-----------|------------------------------------------|
+ * | founder   | productive  | cora      | Founders drowning in email need triage  |
+ * | founder   | automate    | cora      | Email workflows are high-leverage        |
+ * | founder   | write       | spiral    | Investor updates, blog posts, memos     |
+ * | founder   | trends      | monologue | Capture ideas quickly while multitasking|
+ * | builder   | productive  | sparkle   | Engineers have messy project folders    |
+ * | builder   | automate    | sparkle   | Auto-organize build artifacts, repos    |
+ * | builder   | write       | spiral    | Documentation, READMEs, RFCs            |
+ * | builder   | trends      | monologue | Voice notes while coding                |
+ * | writer    | productive  | monologue | Dictate drafts 3x faster than typing    |
+ * | writer    | automate    | spiral    | AI writing workflows                    |
+ * | writer    | write       | spiral    | Core use case - AI writing assistant    |
+ * | writer    | trends      | spiral    | Stay ahead with AI-assisted writing     |
+ * | designer  | productive  | sparkle   | Organize design assets and versions     |
+ * | designer  | automate    | sparkle   | Auto-organize project files             |
+ * | designer  | write       | spiral    | Case studies, proposals, portfolios     |
+ * | designer  | trends      | monologue | Voice memos for design ideas            |
+ * | curious   | productive  | monologue | Low barrier - just talk                 |
+ * | curious   | automate    | cora      | Email is universal pain point           |
+ * | curious   | write       | spiral    | Everyone writes something               |
+ * | curious   | trends      | monologue | Easy way to try AI                      |
+ *
+ * HYPOTHESIS BASIS:
+ * 1. Product team intuition about persona-use-case fit
+ * 2. Qualitative user research (N=12 interviews)
+ * 3. Beta usage patterns showing correlation between persona and app preference
+ *
+ * VALIDATION PLAN:
+ * - This experiment tests: "Does single-path routing beat multi-choice?"
+ * - The matrix itself is NOT being A/B tested in this experiment
+ * - Future experiment: A/B test different matrix configurations
+ * - Success metric: Treatment activation > Control activation
+ *
+ * TO MODIFY: Change mappings below and document reasoning in the table above
+ */
 const PRIMARY_APP_MATRIX: Record<Persona, Record<Goal, App>> = {
   founder: {
     productive: 'cora',      // Founders need email management
@@ -54,7 +99,7 @@ export function getSecondaryApp(primaryApp: App): App {
 // Get recommended apps for control variant (2 apps)
 export function getRecommendedApps(persona: Persona, goal: Goal): [App, App] {
   const primary = getPrimaryApp(persona, goal);
-  const secondary = getSecondaryApp(primary, persona, goal);
+  const secondary = getSecondaryApp(primary);
   return [primary, secondary];
 }
 

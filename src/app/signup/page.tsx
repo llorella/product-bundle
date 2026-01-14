@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useStore } from '@/lib/store';
@@ -14,6 +14,13 @@ export default function SignupPage() {
   const [step, setStep] = useState(1);
   const [forcedVariant, setForcedVariant] = useState<Variant | null>(null);
 
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      router.push('/survey');
+    }
+  }, [user, router]);
+
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (email) {
@@ -26,9 +33,8 @@ export default function SignupPage() {
     router.push('/survey');
   };
 
-  // If already logged in, redirect to survey
+  // Show nothing while redirecting
   if (user) {
-    router.push('/survey');
     return null;
   }
 

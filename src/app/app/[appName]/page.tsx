@@ -319,14 +319,15 @@ export default function AppPage() {
   const appName = params.appName as App;
   const {
     user,
-    firstWinStartedAt,
-    firstWinCompletedAt,
+    completedItems,
+    startFirstWin,
     completeFirstWin,
     showCrossActivation,
     crossActivationShown,
   } = useStore();
 
   const [showWinScreen, setShowWinScreen] = useState(false);
+  const [taskStarted, setTaskStarted] = useState(false);
 
   // Validate app name
   if (!APPS[appName]) {
@@ -335,6 +336,17 @@ export default function AppPage() {
   }
 
   const app = APPS[appName];
+
+  // Check if THIS app has been completed (not just any app)
+  const isThisAppCompleted = completedItems.includes(appName);
+
+  // Track first win start when user begins this app's task
+  useEffect(() => {
+    if (!taskStarted && user && !isThisAppCompleted) {
+      startFirstWin(appName);
+      setTaskStarted(true);
+    }
+  }, [taskStarted, user, appName, isThisAppCompleted, startFirstWin]);
 
   const handleComplete = () => {
     completeFirstWin(appName, app.firstWinTask);
@@ -355,7 +367,8 @@ export default function AppPage() {
   };
   const secondaryApp = APPS[secondaryApps[appName]];
 
-  if (showWinScreen || firstWinCompletedAt) {
+  // Show win screen if just completed OR if this specific app was already completed
+  if (showWinScreen || isThisAppCompleted) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="max-w-md mx-auto px-4 text-center animate-celebrate">

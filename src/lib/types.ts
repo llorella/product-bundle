@@ -105,3 +105,56 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
   { id: 'team', category: 'expansion', title: 'Create a team', description: 'Collaborate together', icon: '👥' },
   { id: 'referral', category: 'expansion', title: 'Refer a friend', description: 'Share and earn', icon: '🎁' },
 ];
+
+// Experiment metric definitions
+export interface MetricDefinition {
+  id: string;
+  name: string;
+  type: 'primary' | 'secondary' | 'guardrail';
+  definition: string;
+  formula: string;
+  direction: 'higher_is_better' | 'lower_is_better';
+}
+
+export const EXPERIMENT_METRICS: MetricDefinition[] = [
+  {
+    id: 'activation_24h',
+    name: 'Activation (24h)',
+    type: 'primary',
+    definition: 'Percentage of users who complete their first-win task within 24 hours of signup',
+    formula: 'COUNT(first_win_completed WHERE timestamp < signup_timestamp + 24h) / COUNT(signup_completed)',
+    direction: 'higher_is_better',
+  },
+  {
+    id: 'ttfv',
+    name: 'Time to First Value',
+    type: 'secondary',
+    definition: 'Median time in seconds from signup to first-win completion',
+    formula: 'MEDIAN(first_win_completed.timestamp - signup_completed.timestamp)',
+    direction: 'lower_is_better',
+  },
+  {
+    id: 'cross_activation_7d',
+    name: 'Cross-Activation (7d)',
+    type: 'secondary',
+    definition: 'Percentage of activated users who try a second app within 7 days',
+    formula: 'COUNT(second_app_started WHERE timestamp < first_win + 7d) / COUNT(first_win_completed)',
+    direction: 'higher_is_better',
+  },
+  {
+    id: 'survey_completion',
+    name: 'Survey Completion',
+    type: 'guardrail',
+    definition: 'Percentage of signups who complete the onboarding survey (should not decrease)',
+    formula: 'COUNT(survey_completed) / COUNT(signup_completed)',
+    direction: 'higher_is_better',
+  },
+  {
+    id: 'error_rate',
+    name: 'Error Rate',
+    type: 'guardrail',
+    definition: 'Percentage of sessions with at least one error (should not increase)',
+    formula: 'COUNT(DISTINCT session_id WHERE error_occurred) / COUNT(DISTINCT session_id)',
+    direction: 'lower_is_better',
+  },
+];

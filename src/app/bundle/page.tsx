@@ -23,9 +23,9 @@ export default function BundlePage() {
 
   const handleItemToggle = (itemId: string) => {
     toggleChecklistItem(itemId);
-    trackEvent('checklist_item_toggled', user.id, 'session', user.variant, {
-      itemId,
-      completed: !completedItems.includes(itemId),
+    trackEvent('checklist_item_clicked', user.id, 'session', user.variant, {
+      item_id: itemId,
+      item_category: 'product',
     });
   };
 
@@ -162,9 +162,11 @@ export default function BundlePage() {
                         <span className="text-xs bg-gray-100 px-2 py-1 rounded">
                           {item.app}
                         </span>
-                        <span className="text-xs text-gray-400">
-                          {item.duration}
-                        </span>
+                        {item.app && APPS[item.app] && (
+                          <span className="text-xs text-gray-400">
+                            {APPS[item.app].firstWinDuration}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
