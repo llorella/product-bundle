@@ -4,31 +4,39 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
-import { APPS, App } from '@/lib/types';
+import { APPS, App, TaskArtifacts, CROSS_PROMPT_CONFIGS } from '@/lib/types';
 import { trackEvent } from '@/lib/events';
 
 // Mock task components for each app
-function CoraTask({ onComplete }: { onComplete: () => void }) {
+function CoraTask({ onComplete }: { onComplete: (artifacts: TaskArtifacts) => void }) {
   const [processed, setProcessed] = useState(0);
+  const [attachmentCount, setAttachmentCount] = useState(0);
   const emails = [
-    { from: 'newsletter@tech.co', subject: 'Weekly AI Roundup', suggestion: 'Archive' },
-    { from: 'boss@company.com', subject: 'Q4 Planning Meeting', suggestion: 'Flag' },
-    { from: 'support@service.io', subject: 'Your ticket has been resolved', suggestion: 'Archive' },
-    { from: 'team@slack.com', subject: 'New messages in #general', suggestion: 'Archive' },
-    { from: 'cfo@company.com', subject: 'Budget Review Required', suggestion: 'Flag' },
-    { from: 'promo@store.com', subject: '50% off everything!', suggestion: 'Archive' },
-    { from: 'client@bigcorp.com', subject: 'Project Update Request', suggestion: 'Reply' },
-    { from: 'hr@company.com', subject: 'Benefits Enrollment Reminder', suggestion: 'Flag' },
-    { from: 'noreply@github.com', subject: 'PR #423 merged', suggestion: 'Archive' },
-    { from: 'partner@agency.co', subject: 'Proposal for Review', suggestion: 'Reply' },
+    { from: 'newsletter@tech.co', subject: 'Weekly AI Roundup', suggestion: 'Archive', hasAttachment: false },
+    { from: 'boss@company.com', subject: 'Q4 Planning Meeting', suggestion: 'Flag', hasAttachment: true },
+    { from: 'support@service.io', subject: 'Your ticket has been resolved', suggestion: 'Archive', hasAttachment: false },
+    { from: 'team@slack.com', subject: 'New messages in #general', suggestion: 'Archive', hasAttachment: false },
+    { from: 'cfo@company.com', subject: 'Budget Review Required', suggestion: 'Flag', hasAttachment: true },
+    { from: 'promo@store.com', subject: '50% off everything!', suggestion: 'Archive', hasAttachment: false },
+    { from: 'client@bigcorp.com', subject: 'Project Update Request', suggestion: 'Reply', hasAttachment: true },
+    { from: 'hr@company.com', subject: 'Benefits Enrollment Reminder', suggestion: 'Flag', hasAttachment: true },
+    { from: 'noreply@github.com', subject: 'PR #423 merged', suggestion: 'Archive', hasAttachment: false },
+    { from: 'partner@agency.co', subject: 'Proposal for Review', suggestion: 'Reply', hasAttachment: true },
   ];
 
   const handleAction = (index: number) => {
     if (processed === index) {
+      const email = emails[index];
+      const newAttachmentCount = email.hasAttachment ? attachmentCount + 1 : attachmentCount;
+      setAttachmentCount(newAttachmentCount);
+
       const newProcessed = processed + 1;
       setProcessed(newProcessed);
       if (newProcessed === 10) {
-        setTimeout(onComplete, 500);
+        setTimeout(() => onComplete({
+          emailsProcessed: 10,
+          attachmentsSaved: newAttachmentCount,
+        }), 500);
       }
     }
   };
@@ -52,7 +60,10 @@ function CoraTask({ onComplete }: { onComplete: () => void }) {
           <div className="flex items-start justify-between">
             <div>
               <div className="text-sm text-gray-500">{email.from}</div>
-              <div className="font-medium">{email.subject}</div>
+              <div className="font-medium flex items-center gap-2">
+                {email.subject}
+                {email.hasAttachment && <span className="text-xs">📎</span>}
+              </div>
             </div>
             <button
               onClick={() => handleAction(processed + i)}
@@ -68,26 +79,40 @@ function CoraTask({ onComplete }: { onComplete: () => void }) {
   );
 }
 
-function SparkleTask({ onComplete }: { onComplete: () => void }) {
+function SparkleTask({ onComplete }: { onComplete: (artifacts: TaskArtifacts) => void }) {
   const [step, setStep] = useState(0);
   const files = [
-    'screenshot_2024_01.png', 'report_q3.pdf', 'notes.txt', 'image_final_v2.jpg',
-    'presentation.pptx', 'data_export.csv', 'photo_vacation.heic', 'contract_signed.pdf',
-    'meeting_recording.mp4', 'design_mockup.fig', 'budget_2024.xlsx', 'readme.md',
+    { name: 'screenshot_2024_01.png', isDraft: false },
+    { name: 'report_q3_DRAFT.pdf', isDraft: true },
+    { name: 'notes.txt', isDraft: false },
+    { name: 'image_final_v2.jpg', isDraft: false },
+    { name: 'presentation_WIP.pptx', isDraft: true },
+    { name: 'data_export.csv', isDraft: false },
+    { name: 'photo_vacation.heic', isDraft: false },
+    { name: 'contract_signed.pdf', isDraft: false },
+    { name: 'meeting_recording.mp4', isDraft: false },
+    { name: 'design_mockup_v3.fig', isDraft: true },
+    { name: 'budget_2024.xlsx', isDraft: false },
+    { name: 'blog_post_DRAFT.md', isDraft: true },
   ];
   const organized = {
     'Images': ['screenshot_2024_01.png', 'image_final_v2.jpg', 'photo_vacation.heic'],
-    'Documents': ['report_q3.pdf', 'notes.txt', 'contract_signed.pdf', 'readme.md'],
+    'Documents': ['report_q3_DRAFT.pdf', 'notes.txt', 'contract_signed.pdf', 'blog_post_DRAFT.md'],
     'Spreadsheets': ['data_export.csv', 'budget_2024.xlsx'],
-    'Presentations': ['presentation.pptx', 'design_mockup.fig'],
+    'Presentations': ['presentation_WIP.pptx', 'design_mockup_v3.fig'],
     'Media': ['meeting_recording.mp4'],
   };
+  const draftsFound = files.filter(f => f.isDraft).length;
 
   const handleNextStep = () => {
     const newStep = step + 1;
     setStep(newStep);
     if (newStep === 3) {
-      setTimeout(onComplete, 500);
+      setTimeout(() => onComplete({
+        filesOrganized: 12,
+        foldersCreated: Object.keys(organized).length,
+        draftsFound,
+      }), 500);
     }
   };
 
@@ -115,11 +140,16 @@ function SparkleTask({ onComplete }: { onComplete: () => void }) {
           <h3 className="font-semibold mb-4">Analyzing 12 files...</h3>
           <div className="grid grid-cols-4 gap-2 mb-6">
             {files.map((file) => (
-              <div key={file} className="p-2 bg-gray-100 rounded text-xs truncate">
-                {file}
+              <div
+                key={file.name}
+                className={`p-2 rounded text-xs truncate ${file.isDraft ? 'bg-yellow-100 border border-yellow-300' : 'bg-gray-100'}`}
+                title={file.isDraft ? 'Draft file' : ''}
+              >
+                {file.name}
               </div>
             ))}
           </div>
+          <p className="text-xs text-gray-500 mb-4">Found {draftsFound} draft files (highlighted)</p>
           <button
             onClick={handleNextStep}
             className="w-full py-3 bg-black text-white rounded-xl hover:bg-gray-800"
@@ -159,13 +189,16 @@ function SparkleTask({ onComplete }: { onComplete: () => void }) {
   );
 }
 
-function SpiralTask({ onComplete }: { onComplete: () => void }) {
+function SpiralTask({ onComplete }: { onComplete: (artifacts: TaskArtifacts) => void }) {
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState('');
+  const [draftType, setDraftType] = useState<'email' | 'blog' | 'social'>('email');
 
-  const handleGenerate = () => {
+  const handleGenerate = (type: 'email' | 'blog' | 'social') => {
+    setDraftType(type);
     setStep(1);
-    setDraft(`Subject: Q4 Planning Update
+    const drafts = {
+      email: `Subject: Q4 Planning Update
 
 Hi Team,
 
@@ -179,12 +212,43 @@ Key highlights:
 Let me know if you have any questions or suggestions.
 
 Best,
-[Your name]`);
+[Your name]`,
+      blog: `# The Future of AI-Powered Productivity
+
+We're at an inflection point in how knowledge workers get things done. The tools we use are evolving faster than ever, and the winners will be those who adapt quickest.
+
+Here's what I've learned after six months of building with AI:
+
+**1. Speed compounds.** Every minute saved today is a minute you can invest tomorrow.
+
+**2. Quality follows quantity.** When you can iterate faster, you naturally find better solutions.
+
+**3. The best ideas come from momentum.** When execution friction drops, creativity rises.
+
+What does this mean for you? Start small. Pick one workflow and automate it.`,
+      social: `Hot take: The best productivity hack isn't a new app—it's removing friction from what you already do.
+
+I just organized 6 months of files in 30 seconds with AI.
+
+Here's the thing nobody talks about:
+- We don't lack tools
+- We lack systems
+- Systems beat willpower
+
+The future belongs to builders who automate their workflows.
+
+What's one task you'd automate if you could? 👇`,
+    };
+    setDraft(drafts[type]);
   };
 
   const handleSave = () => {
     setStep(2);
-    setTimeout(onComplete, 500);
+    const wordCount = draft.split(/\s+/).filter(Boolean).length;
+    setTimeout(() => onComplete({
+      wordCount,
+      draftType,
+    }), 500);
   };
 
   return (
@@ -194,13 +258,13 @@ Best,
           <h3 className="font-semibold mb-4">What would you like to write?</h3>
           <div className="grid grid-cols-1 gap-3">
             {[
-              { type: 'email', label: 'Work email', desc: 'Professional communication' },
-              { type: 'blog', label: 'Blog intro', desc: 'Engaging opening paragraph' },
-              { type: 'social', label: 'Social post', desc: 'LinkedIn or Twitter' },
+              { type: 'email' as const, label: 'Work email', desc: 'Professional communication' },
+              { type: 'blog' as const, label: 'Blog post', desc: 'Engaging article draft' },
+              { type: 'social' as const, label: 'Social post', desc: 'LinkedIn or Twitter thread' },
             ].map((option) => (
               <button
                 key={option.type}
-                onClick={handleGenerate}
+                onClick={() => handleGenerate(option.type)}
                 className="p-4 border border-gray-200 rounded-xl hover:border-black transition-all text-left"
               >
                 <div className="font-medium">{option.label}</div>
@@ -237,14 +301,21 @@ Best,
   );
 }
 
-function MonologueTask({ onComplete }: { onComplete: () => void }) {
+function MonologueTask({ onComplete }: { onComplete: (artifacts: TaskArtifacts) => void }) {
   const [step, setStep] = useState(0);
   const [recording, setRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const [transcript, setTranscript] = useState('');
 
   const handleRecord = () => {
     setRecording(true);
+    setRecordingTime(0);
+    const interval = setInterval(() => {
+      setRecordingTime((t) => t + 1);
+    }, 1000);
+
     setTimeout(() => {
+      clearInterval(interval);
       setRecording(false);
       setStep(1);
       setTranscript(
@@ -255,7 +326,10 @@ function MonologueTask({ onComplete }: { onComplete: () => void }) {
 
   const handleSummarize = () => {
     setStep(2);
-    setTimeout(onComplete, 500);
+    setTimeout(() => onComplete({
+      ideasCaptured: 4, // Based on the summary bullet points
+      recordingSeconds: 3,
+    }), 500);
   };
 
   return (
@@ -273,7 +347,7 @@ function MonologueTask({ onComplete }: { onComplete: () => void }) {
             {recording ? '⏹' : '🎤'}
           </button>
           <p className="text-sm text-gray-500 mt-4">
-            {recording ? 'Recording... (simulated)' : 'Click to start recording'}
+            {recording ? `Recording... ${recordingTime}s` : 'Click to start recording'}
           </p>
         </div>
       )}
@@ -324,10 +398,12 @@ export default function AppPage() {
     completeFirstWin,
     showCrossActivation,
     crossActivationShown,
+    firstWinArtifacts,
   } = useStore();
 
   const [showWinScreen, setShowWinScreen] = useState(false);
   const [taskStarted, setTaskStarted] = useState(false);
+  const [currentArtifacts, setCurrentArtifacts] = useState<TaskArtifacts | null>(null);
 
   // Validate app name
   if (!APPS[appName]) {
@@ -348,8 +424,9 @@ export default function AppPage() {
     }
   }, [taskStarted, user, appName, isThisAppCompleted, startFirstWin]);
 
-  const handleComplete = () => {
-    completeFirstWin(appName, app.firstWinTask);
+  const handleComplete = (artifacts?: TaskArtifacts) => {
+    completeFirstWin(appName, app.firstWinTask, artifacts);
+    setCurrentArtifacts(artifacts || null);
     setShowWinScreen(true);
   };
 
@@ -358,14 +435,14 @@ export default function AppPage() {
     router.push('/bundle');
   };
 
-  // Get secondary app for cross-activation
-  const secondaryApps: Record<App, App> = {
-    cora: 'sparkle',
-    sparkle: 'monologue',
-    spiral: 'monologue',
-    monologue: 'spiral',
-  };
-  const secondaryApp = APPS[secondaryApps[appName]];
+  // Get cross-activation prompt config for this app
+  const crossPromptConfig = CROSS_PROMPT_CONFIGS.find((c) => c.fromApp === appName);
+  const secondaryAppName = crossPromptConfig?.toApp;
+  const secondaryApp = secondaryAppName ? APPS[secondaryAppName] : null;
+
+  // Get contextual prompt based on artifacts
+  const artifacts = currentArtifacts || firstWinArtifacts || {};
+  const contextualPrompt = crossPromptConfig?.getPrompt(artifacts);
 
   // Show win screen if just completed OR if this specific app was already completed
   if (showWinScreen || isThisAppCompleted) {
@@ -378,31 +455,50 @@ export default function AppPage() {
             You just completed: <strong>{app.firstWinTask}</strong>
           </p>
 
-          {/* Cross-activation prompt (treatment only) */}
-          {user?.variant === 'treatment' && !crossActivationShown && (
-            <div className="p-6 border border-gray-200 rounded-2xl mb-6 text-left">
-              <div className="text-sm text-gray-500 mb-2">Ready for another win?</div>
-              <div className="flex items-center gap-4">
+          {/* Contextual cross-activation prompt (treatment only) */}
+          {user?.variant === 'treatment' && !crossActivationShown && secondaryApp && contextualPrompt && (
+            <div className="p-6 border border-gray-200 rounded-2xl mb-6 text-left bg-gradient-to-br from-gray-50 to-white">
+              {/* Contextual headline */}
+              <div className="font-semibold text-lg mb-1">{contextualPrompt.headline}</div>
+              <div className="text-sm text-gray-600 mb-4">{contextualPrompt.subtext}</div>
+
+              {/* Secondary app card */}
+              <div className="flex items-center gap-4 p-3 bg-white border border-gray-100 rounded-xl">
                 <div className="text-4xl">{secondaryApp.icon}</div>
-                <div>
+                <div className="flex-1">
                   <div className="font-semibold">{secondaryApp.name}</div>
-                  <div className="text-sm text-gray-600">{secondaryApp.tagline}</div>
+                  <div className="text-sm text-gray-500">{secondaryApp.tagline}</div>
                 </div>
               </div>
+
               <Link
-                href={`/app/${secondaryApps[appName]}`}
-                className="block mt-4 py-2 text-center text-black border border-black rounded-xl hover:bg-gray-50"
+                href={`/app/${secondaryAppName}`}
+                onClick={() => {
+                  if (user) {
+                    trackEvent('cross_activation_clicked', user.id, user.id, user.variant, {
+                      from_app: appName,
+                      to_app: secondaryAppName,
+                    });
+                  }
+                }}
+                className="block mt-4 py-3 text-center text-white bg-black rounded-xl hover:bg-gray-800 font-medium"
               >
-                Try {secondaryApp.name} →
+                {contextualPrompt.cta}
               </Link>
             </div>
           )}
 
           <button
             onClick={handleContinue}
-            className="w-full py-4 bg-black text-white rounded-xl font-medium hover:bg-gray-800"
+            className={`w-full py-4 rounded-xl font-medium ${
+              user?.variant === 'treatment' && !crossActivationShown
+                ? 'text-gray-500 hover:text-black border border-gray-200 hover:border-gray-400'
+                : 'bg-black text-white hover:bg-gray-800'
+            }`}
           >
-            Continue to bundle →
+            {user?.variant === 'treatment' && !crossActivationShown
+              ? 'Skip to bundle'
+              : 'Continue to bundle →'}
           </button>
         </div>
       </div>
@@ -444,7 +540,7 @@ export default function AppPage() {
         {/* Skip option */}
         <div className="mt-8 text-center">
           <button
-            onClick={handleComplete}
+            onClick={() => handleComplete()}
             className="text-sm text-gray-500 hover:text-black"
           >
             Skip and mark as complete

@@ -153,15 +153,3 @@ export function clearAllEvents(): void {
 }
 
 export const clearEvents = clearAllEvents;
-
-export function getUserEvents(userId: string): Event[] {
-  return getAllEvents().filter(e => e.user_id === userId);
-}
-
-export function getEventsByType(eventType: EventType): Event[] {
-  return getAllEvents().filter(e => e.event === eventType);
-}
-
-export function exportEventsAsJSONL(): string {
-  return getAllEvents().map(e => JSON.stringify(e)).join('\n');
-}

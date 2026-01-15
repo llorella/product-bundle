@@ -2,7 +2,9 @@
 
 ## Project Overview
 
-A/B experiment demo for Every (every.to) demonstrating single-path onboarding. Built as a growth engineer application showcasing rigorous experiment design.
+A/B experiment demo for Every (every.to) demonstrating **demand-driven bundle discovery**. Built as a growth engineer application showcasing rigorous experiment design.
+
+**Core Thesis**: Users discover bundle value more effectively when adjacent products are surfaced at moments of accomplished value (demand-driven discovery) rather than presented upfront as a menu of options.
 
 ## Quick Commands
 
@@ -71,17 +73,25 @@ src/
 
 ## The Experiment
 
-**Hypothesis**: Single-path onboarding with guided first-win increases activation and reduces time to first value.
+**Hypothesis**: Users discover bundle value more effectively when adjacent products are surfaced at moments of accomplished value (demand-driven) rather than presented upfront as a menu.
+
+**Business Impact**: Multi-product users retain 3-4x better. This experiment targets the *mechanism* by which users become multi-product users.
 
 | Variant | Flow |
 |---------|------|
-| Control | Survey → 2 app recommendations → user chooses |
-| Treatment | Survey → 1 assigned app → guided first-win task (30-90s) |
+| Control (Menu-Driven) | Survey → 2 app recommendations → user chooses → self-directed exploration |
+| Treatment (Demand-Driven) | Survey → 1 assigned app → guided first-win → contextual cross-sell tied to accomplishment |
+
+**Cross-Activation Prompts**: Treatment users see contextual prompts that reference their accomplishment:
+- After Cora: "You cleared 10 emails. 5 had attachments—organize them in 30 seconds."
+- After Sparkle: "You organized 12 files. 4 are unfinished drafts—pick one to complete."
+- After Spiral: "You wrote 150 words. Capture more ideas on the go with voice notes."
+- After Monologue: "You captured 4 ideas. Turn your best one into a polished draft."
 
 **Metrics**:
-- Primary: Activation_24h (% completing first-win within 24h)
-- Secondary: TTFV (time to first value), Cross-Activation_7d
-- Guardrails: Survey completion rate, Error rate
+- **Primary**: Multi-Product Activation (7d) — % of users who complete core action in 2+ products within 7 days
+- **Secondary**: First Product Activation (24h), Time to First Value, Cross-Prompt CTR
+- **Guardrails**: Survey completion rate, First product activation rate
 
 ## Tech Stack
 

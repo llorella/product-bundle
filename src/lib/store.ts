@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User, Persona, Goal, App, Variant } from './types';
+import { User, Persona, Goal, App, Variant, TaskArtifacts, CROSS_PROMPT_CONFIGS } from './types';
 import { generateUserId, generateSessionId, getVariant, persistVariant } from './assignment';
 import { getPrimaryApp, getAssignmentReason } from './primary-app';
 import { trackEvent } from './events';
@@ -21,6 +21,7 @@ interface AppState {
   firstWinStartedAt: string | null;
   firstWinCompletedAt: string | null;
   firstWinApp: App | null;
+  firstWinArtifacts: TaskArtifacts | null;
   crossActivationShown: boolean;
 
   // Actions
@@ -29,7 +30,7 @@ interface AppState {
   setGoal: (goal: Goal) => void;
   completeSurvey: () => void;
   startFirstWin: (app: App) => void;
-  completeFirstWin: (app: App, taskType: string) => void;
+  completeFirstWin: (app: App, taskType: string, artifacts?: TaskArtifacts) => void;
   markItemCompleted: (itemId: string) => void;
   toggleChecklistItem: (itemId: string) => void;
   showCrossActivation: () => void;
@@ -50,6 +51,7 @@ export const useStore = create<AppState>()(
       firstWinStartedAt: null,
       firstWinCompletedAt: null,
       firstWinApp: null,
+      firstWinArtifacts: null,
       crossActivationShown: false,
 
       initUser: (email: string, forcedVariant?: Variant) => {
@@ -119,7 +121,7 @@ export const useStore = create<AppState>()(
         trackEvent('first_win_started', user.id, sessionId, user.variant, { app });
       },
 
-      completeFirstWin: (app: App, taskType: string) => {
+      completeFirstWin: (app: App, taskType: string, artifacts?: TaskArtifacts) => {
         const { user, sessionId, firstWinStartedAt, completedItems } = get();
         if (!user || !firstWinStartedAt) return;
 
@@ -135,6 +137,7 @@ export const useStore = create<AppState>()(
         set({
           firstWinCompletedAt: completedAt,
           firstWinApp: app,
+          firstWinArtifacts: artifacts || null,
           completedItems: newCompletedItems,
         });
 
@@ -142,6 +145,7 @@ export const useStore = create<AppState>()(
           app,
           time_to_value_seconds: timeToValue,
           task_type: taskType,
+          ...artifacts,
         });
       },
 
@@ -173,18 +177,14 @@ export const useStore = create<AppState>()(
 
         set({ crossActivationShown: true });
 
-        const secondaryApps: Record<App, App> = {
-          cora: 'sparkle',
-          sparkle: 'monologue',
-          spiral: 'monologue',
-          monologue: 'spiral',
-        };
-
-        trackEvent('cross_activation_prompt_shown', user.id, sessionId, user.variant, {
-          from_app: primaryApp,
-          to_app: secondaryApps[primaryApp],
-          trigger_type: 'task_complete',
-        });
+        const config = CROSS_PROMPT_CONFIGS.find((c) => c.fromApp === primaryApp);
+        if (config) {
+          trackEvent('cross_activation_prompt_shown', user.id, sessionId, user.variant, {
+            from_app: primaryApp,
+            to_app: config.toApp,
+            trigger_type: 'task_complete',
+          });
+        }
       },
 
       reset: () => {
@@ -199,6 +199,7 @@ export const useStore = create<AppState>()(
           firstWinStartedAt: null,
           firstWinCompletedAt: null,
           firstWinApp: null,
+          firstWinArtifacts: null,
           crossActivationShown: false,
         });
       },
@@ -213,6 +214,7 @@ export const useStore = create<AppState>()(
         completedItems: state.completedItems,
         firstWinCompletedAt: state.firstWinCompletedAt,
         firstWinApp: state.firstWinApp,
+        firstWinArtifacts: state.firstWinArtifacts,
       }),
     }
   )

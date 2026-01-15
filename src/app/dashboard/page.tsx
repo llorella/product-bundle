@@ -37,8 +37,10 @@ interface VariantMetrics {
   surveyCompleted: number;
   firstWinStarted: number;
   firstWinCompleted: number;
+  multiProductUsers: number; // Users with 2+ app completions
   ttfvValues: number[];
   crossActivationShown: number;
+  crossActivationClicked: number;
 }
 
 function calculateVariantMetrics(events: Event[]): {
@@ -55,8 +57,11 @@ function calculateVariantMetrics(events: Event[]): {
     const surveys = variantEvents.filter((e) => e.type === 'survey_completed');
     const fwStarted = variantEvents.filter((e) => e.type === 'first_win_started');
     const fwCompleted = variantEvents.filter((e) => e.type === 'first_win_completed');
-    const crossAct = variantEvents.filter(
+    const crossActShown = variantEvents.filter(
       (e) => e.type === 'cross_activation_prompt_shown'
+    );
+    const crossActClicked = variantEvents.filter(
+      (e) => e.type === 'cross_activation_clicked'
     );
 
     const uniqueUsers = new Set(signups.map((e) => e.userId)).size;
@@ -64,14 +69,31 @@ function calculateVariantMetrics(events: Event[]): {
       .map((e) => (e.payload as { time_to_value_seconds?: number }).time_to_value_seconds)
       .filter((v): v is number => typeof v === 'number');
 
+    // Count users with 2+ app completions (multi-product users)
+    const completionsByUser = new Map<string, Set<string>>();
+    fwCompleted.forEach((e) => {
+      const app = (e.payload as { app?: string }).app;
+      if (!completionsByUser.has(e.userId)) {
+        completionsByUser.set(e.userId, new Set());
+      }
+      if (app) {
+        completionsByUser.get(e.userId)!.add(app);
+      }
+    });
+    const multiProductUsers = Array.from(completionsByUser.values()).filter(
+      (apps) => apps.size >= 2
+    ).length;
+
     return {
       totalUsers: uniqueUsers,
       signups: signups.length,
       surveyCompleted: surveys.length,
       firstWinStarted: fwStarted.length,
       firstWinCompleted: fwCompleted.length,
+      multiProductUsers,
       ttfvValues,
-      crossActivationShown: crossAct.length,
+      crossActivationShown: crossActShown.length,
+      crossActivationClicked: crossActClicked.length,
     };
   };
 
@@ -132,7 +154,21 @@ export default function DashboardPage() {
   const metrics = useMemo(() => calculateVariantMetrics(events), [events]);
 
   // Statistical calculations
-  const activationStats = useMemo(
+
+  // PRIMARY: Multi-product activation (2+ apps)
+  const multiProductStats = useMemo(
+    () =>
+      proportionSignificance(
+        metrics.control.totalUsers,
+        metrics.control.multiProductUsers,
+        metrics.treatment.totalUsers,
+        metrics.treatment.multiProductUsers
+      ),
+    [metrics]
+  );
+
+  // SECONDARY: First product activation
+  const firstProductStats = useMemo(
     () =>
       proportionSignificance(
         metrics.control.totalUsers,
@@ -143,6 +179,7 @@ export default function DashboardPage() {
     [metrics]
   );
 
+  // SECONDARY: Time to first value
   const ttfvStats = useMemo(
     () =>
       continuousSignificance(
@@ -152,6 +189,13 @@ export default function DashboardPage() {
     [metrics]
   );
 
+  // SECONDARY: Cross-activation prompt CTR (treatment only)
+  const crossPromptCTR = useMemo(() => {
+    if (metrics.treatment.crossActivationShown === 0) return null;
+    return metrics.treatment.crossActivationClicked / metrics.treatment.crossActivationShown;
+  }, [metrics]);
+
+  // GUARDRAIL: Survey completion
   const surveyStats = useMemo(
     () =>
       proportionSignificance(
@@ -195,14 +239,14 @@ export default function DashboardPage() {
       treatment: metrics.treatment.surveyCompleted,
     },
     {
-      stage: 'First Win Started',
-      control: metrics.control.firstWinStarted,
-      treatment: metrics.treatment.firstWinStarted,
-    },
-    {
-      stage: 'First Win Complete',
+      stage: '1st Product',
       control: metrics.control.firstWinCompleted,
       treatment: metrics.treatment.firstWinCompleted,
+    },
+    {
+      stage: '2+ Products',
+      control: metrics.control.multiProductUsers,
+      treatment: metrics.treatment.multiProductUsers,
     },
   ];
 
@@ -238,11 +282,12 @@ export default function DashboardPage() {
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         {/* Experiment Design */}
         <section className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-xl font-bold mb-2">Experiment Design</h2>
+          <h2 className="text-xl font-bold mb-2">Demand-Driven Bundle Discovery</h2>
           <p className="text-gray-600 mb-6">
-            <strong>Hypothesis:</strong> Routing new signups into ONE primary app
-            (based on survey answers) and guiding them to a &quot;first win&quot;
-            will increase activation rates and reduce time to first value.
+            <strong>Hypothesis:</strong> Users discover bundle value more effectively when adjacent products are surfaced at moments of accomplished value (demand-driven discovery) rather than presented upfront as a menu of options.
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            <strong>Business Impact:</strong> Multi-product users retain 3-4x better than single-product users. This experiment targets the <em>mechanism</em> by which users become multi-product users.
           </p>
 
           <div className="grid md:grid-cols-2 gap-6">
@@ -251,15 +296,15 @@ export default function DashboardPage() {
               <h3 className="font-semibold mb-3">Variants</h3>
               <div className="space-y-3">
                 <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-                  <div className="font-medium text-blue-800">Control</div>
+                  <div className="font-medium text-blue-800">Control (Menu-Driven)</div>
                   <div className="text-sm text-blue-600">
-                    Shows 2 recommended apps; user chooses which to try
+                    Shows 2 recommended apps; user chooses → self-directed exploration
                   </div>
                 </div>
                 <div className="p-3 bg-green-50 rounded-lg border border-green-100">
-                  <div className="font-medium text-green-800">Treatment</div>
+                  <div className="font-medium text-green-800">Treatment (Demand-Driven)</div>
                   <div className="text-sm text-green-600">
-                    Single app assignment + guided first-win task (30-90 seconds)
+                    Single app → guided first-win → contextual cross-sell tied to accomplishment
                   </div>
                 </div>
               </div>
@@ -422,31 +467,59 @@ export default function DashboardPage() {
           ) : (
             <>
               {/* Summary Cards */}
-              <div className="grid md:grid-cols-4 gap-4 mb-6">
+              <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <div className="text-sm text-gray-500">Total Users</div>
                   <div className="text-2xl font-bold">
                     {metrics.control.totalUsers + metrics.treatment.totalUsers}
                   </div>
                   <div className="text-xs text-gray-400">
-                    {metrics.control.totalUsers} control /{' '}
-                    {metrics.treatment.totalUsers} treatment
+                    {metrics.control.totalUsers} ctrl / {metrics.treatment.totalUsers} treat
                   </div>
                 </div>
 
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="text-sm text-gray-500 mb-1">
-                    Activation Rate (Primary)
+                <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                  <div className="text-sm text-purple-700 mb-1 flex items-center gap-1">
+                    <span className="px-1.5 py-0.5 bg-purple-100 rounded text-xs font-medium">PRIMARY</span>
+                    Multi-Product (2+)
                   </div>
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl font-bold">
-                      {formatPercent(activationStats.treatmentRate)}
+                      {formatPercent(multiProductStats.treatmentRate)}
                     </span>
                     <span className="text-sm text-gray-400">
-                      vs {formatPercent(activationStats.controlRate)}
+                      vs {formatPercent(multiProductStats.controlRate)}
                     </span>
                   </div>
-                  <SignificanceBadge status={activationStats.status} />
+                  <SignificanceBadge status={multiProductStats.status} />
+                </div>
+
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="text-sm text-gray-500 mb-1">1st Product Activation</div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-bold">
+                      {formatPercent(firstProductStats.treatmentRate)}
+                    </span>
+                    <span className="text-sm text-gray-400">
+                      vs {formatPercent(firstProductStats.controlRate)}
+                    </span>
+                  </div>
+                  <SignificanceBadge status={firstProductStats.status} />
+                </div>
+
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="text-sm text-gray-500 mb-1">Cross-Prompt CTR</div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-bold">
+                      {crossPromptCTR !== null ? formatPercent(crossPromptCTR) : 'N/A'}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      ({metrics.treatment.crossActivationClicked}/{metrics.treatment.crossActivationShown})
+                    </span>
+                  </div>
+                  <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700">
+                    Treatment only
+                  </span>
                 </div>
 
                 <div className="p-4 bg-gray-50 rounded-lg">
@@ -460,21 +533,6 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <SignificanceBadge status={ttfvStats.status} />
-                </div>
-
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="text-sm text-gray-500 mb-1">
-                    Survey Completion (Guardrail)
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-bold">
-                      {formatPercent(surveyStats.treatmentRate)}
-                    </span>
-                    <span className="text-sm text-gray-400">
-                      vs {formatPercent(surveyStats.controlRate)}
-                    </span>
-                  </div>
-                  <SignificanceBadge status={surveyStats.status} />
                 </div>
               </div>
 
@@ -494,33 +552,67 @@ export default function DashboardPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="border-b border-gray-100">
-                        <td className="py-2 px-2 font-medium">Activation Rate</td>
-                        <td className="py-2 px-2 text-right">
-                          {formatPercent(activationStats.controlRate)}
+                      <tr className="border-b border-gray-100 bg-purple-50">
+                        <td className="py-2 px-2 font-medium">
+                          <span className="px-1.5 py-0.5 bg-purple-100 rounded text-xs font-medium text-purple-700 mr-1">P</span>
+                          Multi-Product (2+)
                         </td>
                         <td className="py-2 px-2 text-right">
-                          {formatPercent(activationStats.treatmentRate)}
+                          {formatPercent(multiProductStats.controlRate)}
                         </td>
                         <td className="py-2 px-2 text-right">
-                          {activationStats.absoluteDiff >= 0 ? '+' : ''}
-                          {formatPercent(activationStats.absoluteDiff)}
+                          {formatPercent(multiProductStats.treatmentRate)}
+                        </td>
+                        <td className="py-2 px-2 text-right">
+                          {multiProductStats.absoluteDiff >= 0 ? '+' : ''}
+                          {formatPercent(multiProductStats.absoluteDiff)}
                         </td>
                         <td className="py-2 px-2 text-right text-gray-500">
-                          {isNaN(activationStats.confidenceInterval.lower)
+                          {isNaN(multiProductStats.confidenceInterval.lower)
                             ? 'N/A'
                             : `[${formatPercent(
-                                activationStats.confidenceInterval.lower
+                                multiProductStats.confidenceInterval.lower
                               )}, ${formatPercent(
-                                activationStats.confidenceInterval.upper
+                                multiProductStats.confidenceInterval.upper
                               )}]`}
                         </td>
                         <td className="py-2 px-2 text-right">
-                          {formatPValue(activationStats.pValue)}
+                          {formatPValue(multiProductStats.pValue)}
                         </td>
                       </tr>
                       <tr className="border-b border-gray-100">
-                        <td className="py-2 px-2 font-medium">Time to Value (s)</td>
+                        <td className="py-2 px-2 font-medium">
+                          <span className="px-1.5 py-0.5 bg-blue-100 rounded text-xs font-medium text-blue-700 mr-1">S</span>
+                          1st Product Activation
+                        </td>
+                        <td className="py-2 px-2 text-right">
+                          {formatPercent(firstProductStats.controlRate)}
+                        </td>
+                        <td className="py-2 px-2 text-right">
+                          {formatPercent(firstProductStats.treatmentRate)}
+                        </td>
+                        <td className="py-2 px-2 text-right">
+                          {firstProductStats.absoluteDiff >= 0 ? '+' : ''}
+                          {formatPercent(firstProductStats.absoluteDiff)}
+                        </td>
+                        <td className="py-2 px-2 text-right text-gray-500">
+                          {isNaN(firstProductStats.confidenceInterval.lower)
+                            ? 'N/A'
+                            : `[${formatPercent(
+                                firstProductStats.confidenceInterval.lower
+                              )}, ${formatPercent(
+                                firstProductStats.confidenceInterval.upper
+                              )}]`}
+                        </td>
+                        <td className="py-2 px-2 text-right">
+                          {formatPValue(firstProductStats.pValue)}
+                        </td>
+                      </tr>
+                      <tr className="border-b border-gray-100">
+                        <td className="py-2 px-2 font-medium">
+                          <span className="px-1.5 py-0.5 bg-blue-100 rounded text-xs font-medium text-blue-700 mr-1">S</span>
+                          Time to Value (s)
+                        </td>
                         <td className="py-2 px-2 text-right">
                           {ttfvStats.controlMean.toFixed(1)}
                         </td>
@@ -543,7 +635,10 @@ export default function DashboardPage() {
                         </td>
                       </tr>
                       <tr>
-                        <td className="py-2 px-2 font-medium">Survey Completion</td>
+                        <td className="py-2 px-2 font-medium">
+                          <span className="px-1.5 py-0.5 bg-orange-100 rounded text-xs font-medium text-orange-700 mr-1">G</span>
+                          Survey Completion
+                        </td>
                         <td className="py-2 px-2 text-right">
                           {formatPercent(surveyStats.controlRate)}
                         </td>

@@ -5,6 +5,80 @@ export type App = 'cora' | 'sparkle' | 'spiral' | 'monologue';
 
 export type Variant = 'control' | 'treatment';
 
+// Artifacts generated during first-win tasks (used for contextual cross-activation)
+export interface TaskArtifacts {
+  // Cora artifacts
+  emailsProcessed?: number;
+  attachmentsSaved?: number;
+
+  // Sparkle artifacts
+  filesOrganized?: number;
+  foldersCreated?: number;
+  draftsFound?: number;
+
+  // Spiral artifacts
+  wordCount?: number;
+  draftType?: 'email' | 'blog' | 'social';
+
+  // Monologue artifacts
+  ideasCaptured?: number;
+  recordingSeconds?: number;
+}
+
+// Cross-activation prompt configuration
+export interface CrossPromptConfig {
+  fromApp: App;
+  toApp: App;
+  getPrompt: (artifacts: TaskArtifacts) => {
+    headline: string;
+    subtext: string;
+    cta: string;
+  };
+}
+
+export const CROSS_PROMPT_CONFIGS: CrossPromptConfig[] = [
+  {
+    fromApp: 'cora',
+    toApp: 'sparkle',
+    getPrompt: (artifacts) => ({
+      headline: `You cleared ${artifacts.emailsProcessed || 10} emails`,
+      subtext: artifacts.attachmentsSaved
+        ? `${artifacts.attachmentsSaved} had attachments—organize them in 30 seconds`
+        : 'Now organize the files piling up on your desktop',
+      cta: 'Organize files →',
+    }),
+  },
+  {
+    fromApp: 'sparkle',
+    toApp: 'spiral',
+    getPrompt: (artifacts) => ({
+      headline: `You organized ${artifacts.filesOrganized || 12} files`,
+      subtext: artifacts.draftsFound
+        ? `${artifacts.draftsFound} are unfinished drafts—pick one to complete`
+        : 'Found some drafts that need finishing? Polish them with AI',
+      cta: 'Finish a draft →',
+    }),
+  },
+  {
+    fromApp: 'spiral',
+    toApp: 'monologue',
+    getPrompt: (artifacts) => ({
+      headline: `You wrote ${artifacts.wordCount || 150} words`,
+      subtext: 'Capture more ideas on the go—turn voice notes into drafts like this one',
+      cta: 'Try voice capture →',
+    }),
+  },
+  {
+    fromApp: 'monologue',
+    toApp: 'spiral',
+    getPrompt: (artifacts) => ({
+      headline: `You captured ${artifacts.ideasCaptured || 4} ideas`,
+      subtext: 'Turn your best idea into a polished draft in seconds',
+      cta: 'Write a draft →',
+    }),
+  },
+];
+
 export interface User {
   id: string;
   email: string;
@@ -118,9 +192,17 @@ export interface MetricDefinition {
 
 export const EXPERIMENT_METRICS: MetricDefinition[] = [
   {
-    id: 'activation_24h',
-    name: 'Activation (24h)',
+    id: 'multi_product_activation_7d',
+    name: 'Multi-Product Activation (7d)',
     type: 'primary',
+    definition: 'Percentage of users who complete a core action in 2+ products within 7 days of signup',
+    formula: 'COUNT(users WITH 2+ first_win_completed WHERE timestamp < signup + 7d) / COUNT(signup_completed)',
+    direction: 'higher_is_better',
+  },
+  {
+    id: 'first_product_activation_24h',
+    name: 'First Product Activation (24h)',
+    type: 'secondary',
     definition: 'Percentage of users who complete their first-win task within 24 hours of signup',
     formula: 'COUNT(first_win_completed WHERE timestamp < signup_timestamp + 24h) / COUNT(signup_completed)',
     direction: 'higher_is_better',
@@ -134,11 +216,11 @@ export const EXPERIMENT_METRICS: MetricDefinition[] = [
     direction: 'lower_is_better',
   },
   {
-    id: 'cross_activation_7d',
-    name: 'Cross-Activation (7d)',
+    id: 'cross_prompt_ctr',
+    name: 'Cross-Activation Prompt CTR',
     type: 'secondary',
-    definition: 'Percentage of activated users who try a second app within 7 days',
-    formula: 'COUNT(second_app_started WHERE timestamp < first_win + 7d) / COUNT(first_win_completed)',
+    definition: 'Percentage of users shown cross-activation prompt who clicked through (treatment only)',
+    formula: 'COUNT(cross_activation_clicked) / COUNT(cross_activation_prompt_shown)',
     direction: 'higher_is_better',
   },
   {
@@ -150,11 +232,11 @@ export const EXPERIMENT_METRICS: MetricDefinition[] = [
     direction: 'higher_is_better',
   },
   {
-    id: 'error_rate',
-    name: 'Error Rate',
+    id: 'first_product_activation_rate',
+    name: 'First Product Activation',
     type: 'guardrail',
-    definition: 'Percentage of sessions with at least one error (should not increase)',
-    formula: 'COUNT(DISTINCT session_id WHERE error_occurred) / COUNT(DISTINCT session_id)',
-    direction: 'lower_is_better',
+    definition: 'Percentage of users who complete first product activation (should not decrease)',
+    formula: 'COUNT(first_win_completed) / COUNT(signup_completed)',
+    direction: 'higher_is_better',
   },
 ];
