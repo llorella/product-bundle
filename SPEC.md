@@ -233,6 +233,11 @@ This tests whether guided single-path + contextual cross-sell outperforms user c
 - Threshold: Must not increase by >20% relative
 - Why: New flow shouldn't introduce bugs
 
+**5. Escape Hatch Rate (Treatment only)**
+- Definition: % of treatment users who switch away from assigned primary app
+- Threshold: Alert if >15%
+- Why: Signals persona→app matrix quality; high rate means assignments are wrong
+
 ### Metric Hierarchy
 
 ```

@@ -3,14 +3,15 @@
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useStore } from '@/lib/store';
-import { APPS } from '@/lib/types';
+import { APPS, App, AppInfo } from '@/lib/types';
 import { getRecommendedApps } from '@/lib/primary-app';
 import { trackEvent } from '@/lib/events';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function RecsPage() {
   const router = useRouter();
-  const { user, selectedPersona, selectedGoal } = useStore();
+  const { user, selectedPersona, selectedGoal, startFirstWin } = useStore();
+  const [handoffApp, setHandoffApp] = useState<AppInfo | null>(null);
 
   // Redirect if not logged in or survey not completed
   useEffect(() => {
@@ -31,8 +32,48 @@ export default function RecsPage() {
   }
 
   // Get recommended apps (control shows 2 apps)
-  const [primaryApp, secondaryApp] = getRecommendedApps(selectedPersona, selectedGoal);
-  const recommendedApps = [APPS[primaryApp], APPS[secondaryApp]];
+  const [primaryAppId, secondaryAppId] = getRecommendedApps(selectedPersona, selectedGoal);
+  const recommendedApps = [APPS[primaryAppId], APPS[secondaryAppId]];
+
+  // Handle handoff interstitial timing
+  useEffect(() => {
+    if (handoffApp) {
+      const timer = setTimeout(() => {
+        startFirstWin(handoffApp.id);
+        router.push(`/app/${handoffApp.id}`);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [handoffApp, router, startFirstWin]);
+
+  const handleAppClick = (app: AppInfo) => {
+    setHandoffApp(app);
+  };
+
+  // Show handoff interstitial
+  if (handoffApp) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center animate-fade-in">
+          <div className="mb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+              <div className="text-3xl">{handoffApp.icon}</div>
+            </div>
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Opening {handoffApp.name}...</h2>
+          <p className="text-gray-500 text-sm mb-6">You'll complete setup in a new tab</p>
+          <div className="flex items-center justify-center gap-2 text-gray-400">
+            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" />
+            <div className="w-2 h-2 bg-gray-300 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+            <div className="w-2 h-2 bg-gray-200 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+          </div>
+          <div className="mt-8 text-xs text-gray-400">
+            <span className="font-mono">→ {handoffApp.id}.every.to</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -63,10 +104,10 @@ export default function RecsPage() {
           {/* Recommended Apps (2 apps for control) */}
           <div className="space-y-4 mb-8">
             {recommendedApps.map((app) => (
-              <Link
+              <button
                 key={app.id}
-                href={`/app/${app.id}`}
-                className="block p-6 border border-gray-200 rounded-2xl hover:border-gray-400 hover:shadow-md transition-all"
+                onClick={() => handleAppClick(app)}
+                className="block w-full text-left p-6 border border-gray-200 rounded-2xl hover:border-gray-400 hover:shadow-md transition-all"
               >
                 <div className="flex items-start gap-4">
                   <div className="text-4xl">{app.icon}</div>
@@ -78,7 +119,7 @@ export default function RecsPage() {
                     </div>
                   </div>
                 </div>
-              </Link>
+              </button>
             ))}
           </div>
 
@@ -97,10 +138,10 @@ export default function RecsPage() {
           <div className="mt-12 p-4 bg-gray-50 rounded-xl">
             <h4 className="font-medium mb-2 text-sm">Control Flow (Current State)</h4>
             <ul className="text-xs text-gray-600 space-y-1">
-              <li>• User sees 2 recommended apps</li>
+              <li>• User sees 2 recommended apps (choice paralysis)</li>
               <li>• User must choose which to try first</li>
-              <li>• No guided first-win task</li>
-              <li>• Links go directly to app landing pages</li>
+              <li>• Handoff interstitial mimics cross-domain friction</li>
+              <li>• No guided first-win task after landing</li>
             </ul>
           </div>
         </div>

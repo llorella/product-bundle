@@ -21,10 +21,10 @@ npm run build  # Production build
 1. Run `npm run dev` to start the dev server
 2. Clear existing data via `/dashboard` → "Clear All Data"
 3. Test both variants:
-   - **Control**: `/signup` → select Control → complete survey → see 2 app recommendations
-   - **Treatment**: `/signup` → select Treatment → complete survey → see single app + first-win task
+   - **Control**: `/signup` → select Control → complete survey → see 2 app recommendations → click app → see handoff interstitial → land on app
+   - **Treatment**: `/signup` → select Treatment → complete survey → see single app + first-win task → (optionally) test escape hatch to switch apps
 4. Verify cross-activation: complete first-win → click secondary app prompt → should show NEW task (not auto-complete)
-5. Check `/dashboard` for tracked events and metrics
+5. Check `/dashboard` for tracked events (including `escape_hatch_clicked` if tested)
 
 ### Key Design Decisions
 
@@ -91,7 +91,23 @@ src/
 **Metrics**:
 - **Primary**: Multi-Product Activation (7d) — % of users who complete core action in 2+ products within 7 days
 - **Secondary**: First Product Activation (24h), Time to First Value, Cross-Prompt CTR
-- **Guardrails**: Survey completion rate, First product activation rate
+- **Guardrails**: Survey completion rate, First product activation rate, Escape hatch rate (treatment only)
+
+### Causal Design Note
+
+This experiment bundles three interventions: (1) single-path routing, (2) guided first-win, (3) contextual cross-activation prompts. This is intentional for a first test—we validate direction quickly. If Treatment wins, follow-up tests decompose:
+- **Test A**: Single-path + first-win only (no cross-prompt)
+- **Test B**: Current routing + cross-prompt only (isolate prompt impact)
+- **Test C**: Single-path only (isolate choice removal)
+
+### Escape Hatch
+
+Treatment users can switch apps via "Not what you need?" link. This:
+1. Reduces ethical risk of trapping users in wrong app
+2. Provides diagnostic signal about matrix quality
+3. Tracked as `escape_hatch_clicked` event with from/to apps
+
+High escape rate (>15%) suggests matrix needs tuning. Low rate validates single-path approach.
 
 ## Tech Stack
 
@@ -101,3 +117,24 @@ src/
 - Zustand (state management)
 - Recharts (charts)
 - localStorage (event persistence)
+
+## Production Considerations
+
+### Cross-Domain Measurement
+
+Production Every likely involves separate product domains (cora.every.to, sparkle.every.to) with independent auth. For attribution:
+1. Assign `variant`, `user_id`, `primary_app` on every.to at signup
+2. Deep-link to product domain with short-lived **signed onboarding token**: `{user_id, variant, persona, goal, primary_app}`
+3. Product app redeems token server-side, binds to local user, emits events with shared identifier
+4. ETL reconciles events into unified experiment table
+
+### Control Handoff Friction
+
+The demo includes a handoff interstitial for Control variant to simulate cross-domain friction ("Opening Sparkle... You'll complete setup in a new tab"). This increases realism without needing real SSO.
+
+## Decision Log
+
+1. **Initial hypothesis**: Personalized checklist would increase engagement
+2. **Audit finding**: Real friction is *discovery mechanism*, not checklist content
+3. **Final design**: Single-path routing + guided first-win + contextual cross-activation
+4. **Bundled intentionally**: Speed to directional signal > causal purity (decomposition planned post-win)

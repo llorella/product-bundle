@@ -23,7 +23,8 @@ export type EventType =
   | 'return_session'
   | 'core_action'
   | 'help_requested'
-  | 'error_occurred';
+  | 'error_occurred'
+  | 'escape_hatch_clicked';
 
 interface SignupCompletedPayload {
   entry_point: string;
@@ -84,6 +85,12 @@ interface ErrorPayload {
   help_type?: 'tooltip' | 'faq' | 'support';
 }
 
+interface EscapeHatchPayload {
+  from_app: App;
+  to_app: App;
+  trigger_screen: 'start' | 'app';
+}
+
 export type Event = BaseEvent & (
   | { event: 'signup_completed'; payload: SignupCompletedPayload }
   | { event: 'survey_started'; payload: Record<string, never> }
@@ -100,6 +107,7 @@ export type Event = BaseEvent & (
   | { event: 'core_action'; payload: CoreActionPayload }
   | { event: 'help_requested'; payload: ErrorPayload }
   | { event: 'error_occurred'; payload: ErrorPayload }
+  | { event: 'escape_hatch_clicked'; payload: EscapeHatchPayload }
 );
 
 const EVENTS_KEY = 'every_demo_events';

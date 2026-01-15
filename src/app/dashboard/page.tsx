@@ -41,6 +41,8 @@ interface VariantMetrics {
   ttfvValues: number[];
   crossActivationShown: number;
   crossActivationClicked: number;
+  escapeHatchClicked: number;
+  primaryAppAssigned: number;
 }
 
 function calculateVariantMetrics(events: Event[]): {
@@ -63,6 +65,8 @@ function calculateVariantMetrics(events: Event[]): {
     const crossActClicked = variantEvents.filter(
       (e) => e.type === 'cross_activation_clicked'
     );
+    const escapeHatch = variantEvents.filter((e) => e.type === 'escape_hatch_clicked');
+    const primaryAssigned = variantEvents.filter((e) => e.type === 'primary_app_assigned');
 
     const uniqueUsers = new Set(signups.map((e) => e.userId)).size;
     const ttfvValues = fwCompleted
@@ -94,6 +98,8 @@ function calculateVariantMetrics(events: Event[]): {
       ttfvValues,
       crossActivationShown: crossActShown.length,
       crossActivationClicked: crossActClicked.length,
+      escapeHatchClicked: escapeHatch.length,
+      primaryAppAssigned: primaryAssigned.length,
     };
   };
 
@@ -206,6 +212,12 @@ export default function DashboardPage() {
       ),
     [metrics]
   );
+
+  // GUARDRAIL: Escape hatch rate (treatment only - signals misrouting)
+  const escapeHatchRate = useMemo(() => {
+    if (metrics.treatment.primaryAppAssigned === 0) return null;
+    return metrics.treatment.escapeHatchClicked / metrics.treatment.primaryAppAssigned;
+  }, [metrics]);
 
   // Sample size calculation
   const sampleSize = useMemo(() => {
@@ -660,6 +672,21 @@ export default function DashboardPage() {
                         </td>
                         <td className="py-2 px-2 text-right">
                           {formatPValue(surveyStats.pValue)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 px-2 font-medium">
+                          <span className="px-1.5 py-0.5 bg-orange-100 rounded text-xs font-medium text-orange-700 mr-1">G</span>
+                          Escape Hatch Rate
+                        </td>
+                        <td className="py-2 px-2 text-right text-gray-400">N/A</td>
+                        <td className="py-2 px-2 text-right">
+                          {escapeHatchRate !== null ? formatPercent(escapeHatchRate) : 'N/A'}
+                        </td>
+                        <td className="py-2 px-2 text-right text-gray-400" colSpan={3}>
+                          <span className="text-xs">
+                            Treatment only ({metrics.treatment.escapeHatchClicked}/{metrics.treatment.primaryAppAssigned} switched)
+                          </span>
                         </td>
                       </tr>
                     </tbody>

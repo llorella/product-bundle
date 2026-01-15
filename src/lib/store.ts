@@ -34,6 +34,7 @@ interface AppState {
   markItemCompleted: (itemId: string) => void;
   toggleChecklistItem: (itemId: string) => void;
   showCrossActivation: () => void;
+  switchPrimaryApp: (newApp: App, triggerScreen: 'start' | 'app') => void;
   reset: () => void;
 }
 
@@ -185,6 +186,19 @@ export const useStore = create<AppState>()(
             trigger_type: 'task_complete',
           });
         }
+      },
+
+      switchPrimaryApp: (newApp: App, triggerScreen: 'start' | 'app') => {
+        const { user, sessionId, primaryApp } = get();
+        if (!user || !primaryApp) return;
+
+        trackEvent('escape_hatch_clicked', user.id, sessionId, user.variant, {
+          from_app: primaryApp,
+          to_app: newApp,
+          trigger_screen: triggerScreen,
+        });
+
+        set({ primaryApp: newApp });
       },
 
       reset: () => {

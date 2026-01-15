@@ -3,13 +3,14 @@
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useStore } from '@/lib/store';
-import { APPS } from '@/lib/types';
+import { APPS, App } from '@/lib/types';
 import { trackEvent } from '@/lib/events';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function StartPage() {
   const router = useRouter();
-  const { user, selectedPersona, selectedGoal, primaryApp, startFirstWin } = useStore();
+  const { user, selectedPersona, selectedGoal, primaryApp, startFirstWin, switchPrimaryApp } = useStore();
+  const [showOtherApps, setShowOtherApps] = useState(false);
 
   // Redirect if not logged in or survey not completed
   useEffect(() => {
@@ -93,14 +94,42 @@ export default function StartPage() {
             </p>
           </div>
 
-          {/* Alternative: See other options */}
-          <div className="mt-8 text-center">
-            <Link
-              href="/bundle"
-              className="text-sm text-gray-500 hover:text-black transition-colors"
+          {/* Escape hatch */}
+          <div className="mt-8">
+            <button
+              onClick={() => setShowOtherApps(!showOtherApps)}
+              className="w-full text-sm text-gray-500 hover:text-black transition-colors flex items-center justify-center gap-1"
             >
-              Not quite right? Explore other apps →
-            </Link>
+              Not what you need? Try a different app
+              <span className={`transition-transform ${showOtherApps ? 'rotate-180' : ''}`}>↓</span>
+            </button>
+
+            {showOtherApps && (
+              <div className="mt-4 p-4 bg-gray-50 rounded-xl space-y-2">
+                <p className="text-xs text-gray-500 mb-3 text-center">Choose a different starting point:</p>
+                {(Object.keys(APPS) as App[])
+                  .filter(appId => appId !== primaryApp)
+                  .map(appId => {
+                    const otherApp = APPS[appId];
+                    return (
+                      <button
+                        key={appId}
+                        onClick={() => {
+                          switchPrimaryApp(appId, 'start');
+                          setShowOtherApps(false);
+                        }}
+                        className="w-full p-3 bg-white border border-gray-200 rounded-lg hover:border-gray-400 transition-colors text-left flex items-center gap-3"
+                      >
+                        <span className="text-2xl">{otherApp.icon}</span>
+                        <div>
+                          <div className="font-medium text-sm">{otherApp.name}</div>
+                          <div className="text-xs text-gray-500">{otherApp.tagline}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+              </div>
+            )}
           </div>
 
           {/* Explanation of treatment flow */}

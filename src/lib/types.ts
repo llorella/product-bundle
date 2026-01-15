@@ -239,4 +239,12 @@ export const EXPERIMENT_METRICS: MetricDefinition[] = [
     formula: 'COUNT(first_win_completed) / COUNT(signup_completed)',
     direction: 'higher_is_better',
   },
+  {
+    id: 'escape_hatch_rate',
+    name: 'Escape Hatch Rate',
+    type: 'guardrail',
+    definition: 'Percentage of treatment users who switched away from assigned app (signals misrouting)',
+    formula: 'COUNT(escape_hatch_clicked WHERE variant=treatment) / COUNT(primary_app_assigned)',
+    direction: 'lower_is_better',
+  },
 ];
