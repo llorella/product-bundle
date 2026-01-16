@@ -1,4 +1,6 @@
 import { Variant, Persona, Goal, App } from './types';
+import { HeuristicType } from './types/matrix';
+import { UserFeaturesCompact } from './types/user-features';
 
 interface BaseEvent {
   event_id: string;
@@ -24,7 +26,13 @@ export type EventType =
   | 'core_action'
   | 'help_requested'
   | 'error_occurred'
-  | 'escape_hatch_clicked';
+  | 'escape_hatch_clicked'
+  // New events for adaptive matrix system
+  | 'app_suggested'
+  | 'app_assigned'
+  | 'app_picked'
+  | 'matrix_version_served'
+  | 'feature_override_matched';
 
 interface SignupCompletedPayload {
   entry_point: string;
@@ -89,6 +97,55 @@ interface EscapeHatchPayload {
   from_app: App;
   to_app: App;
   trigger_screen: 'start' | 'app';
+  // Enhanced context for matrix analysis
+  persona?: Persona;
+  goal?: Goal;
+  time_since_assignment_ms?: number;
+  task_progress_percent?: number;
+  matrix_version?: string;
+  cell_confidence?: number;
+}
+
+// New payload interfaces for adaptive matrix system
+
+interface AppSuggestedPayload {
+  app: App;
+  position: number;              // 1 for primary, 2 for secondary
+  persona: Persona;
+  goal: Goal;
+  matrix_version: string;
+  cell_confidence: number;
+}
+
+interface AppAssignedPayload {
+  app: App;
+  persona: Persona;
+  goal: Goal;
+  matrix_version: string;
+  cell_confidence: number;
+  feature_override_applied?: string;
+  user_features: UserFeaturesCompact;
+}
+
+interface AppPickedPayload {
+  suggested_apps: App[];         // What was suggested
+  picked_app: App;               // What user chose
+  pick_position: number;         // Which position (1, 2, or 0 for escape hatch)
+  time_to_pick_ms: number;       // How long user took to decide
+}
+
+interface MatrixVersionServedPayload {
+  version: string;
+  source: 'default' | 'api' | 'computed';
+  heuristic?: HeuristicType;
+}
+
+interface FeatureOverrideMatchedPayload {
+  override_id: string;
+  override_name: string;
+  conditions_matched: string[];  // JSON stringified conditions
+  original_app: App;
+  overridden_app: App;
 }
 
 export type Event = BaseEvent & (
@@ -108,6 +165,12 @@ export type Event = BaseEvent & (
   | { event: 'help_requested'; payload: ErrorPayload }
   | { event: 'error_occurred'; payload: ErrorPayload }
   | { event: 'escape_hatch_clicked'; payload: EscapeHatchPayload }
+  // New events for adaptive matrix system
+  | { event: 'app_suggested'; payload: AppSuggestedPayload }
+  | { event: 'app_assigned'; payload: AppAssignedPayload }
+  | { event: 'app_picked'; payload: AppPickedPayload }
+  | { event: 'matrix_version_served'; payload: MatrixVersionServedPayload }
+  | { event: 'feature_override_matched'; payload: FeatureOverrideMatchedPayload }
 );
 
 const EVENTS_KEY = 'every_demo_events';

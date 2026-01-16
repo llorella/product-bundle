@@ -284,6 +284,9 @@ export default function DashboardPage() {
                 Logged in as {user.email}
               </span>
             )}
+            <Link href="/dashboard/matrix" className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+              Matrix Analysis
+            </Link>
             <Link href="/bundle" className="text-sm text-gray-600 hover:text-black">
               Back to Bundle
             </Link>

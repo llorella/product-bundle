@@ -4,14 +4,25 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useStore } from '@/lib/store';
 import { APPS, App, AppInfo } from '@/lib/types';
-import { getRecommendedApps } from '@/lib/primary-app';
+import { getRecommendedApps, getPrimaryAppCell } from '@/lib/primary-app';
 import { trackEvent } from '@/lib/events';
-import { useEffect, useState } from 'react';
+import { getMatrixVersion } from '@/lib/matrix';
+import { useEffect, useState, useRef } from 'react';
 
 export default function RecsPage() {
   const router = useRouter();
   const { user, selectedPersona, selectedGoal, startFirstWin } = useStore();
   const [handoffApp, setHandoffApp] = useState<AppInfo | null>(null);
+  const pageLoadTime = useRef<number>(Date.now());
+  const suggestionsTracked = useRef<boolean>(false);
+
+  // Get recommended apps (control shows 2 apps)
+  const [primaryAppId, secondaryAppId] = selectedPersona && selectedGoal
+    ? getRecommendedApps(selectedPersona, selectedGoal)
+    : [null, null];
+  const recommendedApps = primaryAppId && secondaryAppId
+    ? [APPS[primaryAppId], APPS[secondaryAppId]]
+    : [];
 
   // Redirect if not logged in or survey not completed
   useEffect(() => {
@@ -24,16 +35,39 @@ export default function RecsPage() {
       trackEvent('onboarding_viewed', user.id, 'session', user.variant, {
         screen: 'recs',
       });
-    }
-  }, [user, selectedPersona, selectedGoal, router]);
 
-  if (!user || !selectedPersona || !selectedGoal) {
+      // Track app suggestions (only once)
+      if (!suggestionsTracked.current && primaryAppId && secondaryAppId) {
+        suggestionsTracked.current = true;
+        const matrixVersion = getMatrixVersion();
+
+        // Track primary suggestion
+        const primaryCell = getPrimaryAppCell(selectedPersona, selectedGoal);
+        trackEvent('app_suggested', user.id, 'session', user.variant, {
+          app: primaryAppId,
+          position: 1,
+          persona: selectedPersona,
+          goal: selectedGoal,
+          matrix_version: matrixVersion,
+          cell_confidence: primaryCell.confidence,
+        });
+
+        // Track secondary suggestion (confidence is inherited from primary's secondary prefs)
+        trackEvent('app_suggested', user.id, 'session', user.variant, {
+          app: secondaryAppId,
+          position: 2,
+          persona: selectedPersona,
+          goal: selectedGoal,
+          matrix_version: matrixVersion,
+          cell_confidence: 0.5, // Secondary has lower implicit confidence
+        });
+      }
+    }
+  }, [user, selectedPersona, selectedGoal, router, primaryAppId, secondaryAppId]);
+
+  if (!user || !selectedPersona || !selectedGoal || !primaryAppId) {
     return null;
   }
-
-  // Get recommended apps (control shows 2 apps)
-  const [primaryAppId, secondaryAppId] = getRecommendedApps(selectedPersona, selectedGoal);
-  const recommendedApps = [APPS[primaryAppId], APPS[secondaryAppId]];
 
   // Handle handoff interstitial timing
   useEffect(() => {
@@ -47,6 +81,17 @@ export default function RecsPage() {
   }, [handoffApp, router, startFirstWin]);
 
   const handleAppClick = (app: AppInfo) => {
+    // Track app picked with timing
+    const timeToPickMs = Date.now() - pageLoadTime.current;
+    const pickPosition = app.id === primaryAppId ? 1 : 2;
+
+    trackEvent('app_picked', user.id, 'session', user.variant, {
+      suggested_apps: [primaryAppId, secondaryAppId],
+      picked_app: app.id,
+      pick_position: pickPosition,
+      time_to_pick_ms: timeToPickMs,
+    });
+
     setHandoffApp(app);
   };
 

@@ -2,8 +2,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User, Persona, Goal, App, Variant, TaskArtifacts, CROSS_PROMPT_CONFIGS } from './types';
 import { generateUserId, generateSessionId, getVariant, persistVariant } from './assignment';
-import { getPrimaryApp, getAssignmentReason } from './primary-app';
+import { getPrimaryApp, getAssignmentReason, getPrimaryAppCell } from './primary-app';
 import { trackEvent } from './events';
+import { getMatrixVersion } from './matrix/config';
 
 interface AppState {
   // User state
@@ -34,7 +35,7 @@ interface AppState {
   markItemCompleted: (itemId: string) => void;
   toggleChecklistItem: (itemId: string) => void;
   showCrossActivation: () => void;
-  switchPrimaryApp: (newApp: App, triggerScreen: 'start' | 'app') => void;
+  switchPrimaryApp: (newApp: App, triggerScreen: 'start' | 'app', context?: { assignmentTimestamp?: number }) => void;
   reset: () => void;
 }
 
@@ -188,14 +189,32 @@ export const useStore = create<AppState>()(
         }
       },
 
-      switchPrimaryApp: (newApp: App, triggerScreen: 'start' | 'app') => {
-        const { user, sessionId, primaryApp } = get();
+      switchPrimaryApp: (newApp: App, triggerScreen: 'start' | 'app', context?: { assignmentTimestamp?: number }) => {
+        const { user, sessionId, primaryApp, selectedPersona, selectedGoal } = get();
         if (!user || !primaryApp) return;
+
+        // Calculate time since assignment if timestamp provided
+        const timeSinceAssignmentMs = context?.assignmentTimestamp
+          ? Date.now() - context.assignmentTimestamp
+          : undefined;
+
+        // Get matrix context for analysis
+        const matrixVersion = getMatrixVersion();
+        let cellConfidence: number | undefined;
+        if (selectedPersona && selectedGoal) {
+          const cell = getPrimaryAppCell(selectedPersona, selectedGoal);
+          cellConfidence = cell.confidence;
+        }
 
         trackEvent('escape_hatch_clicked', user.id, sessionId, user.variant, {
           from_app: primaryApp,
           to_app: newApp,
           trigger_screen: triggerScreen,
+          persona: selectedPersona || undefined,
+          goal: selectedGoal || undefined,
+          time_since_assignment_ms: timeSinceAssignmentMs,
+          matrix_version: matrixVersion,
+          cell_confidence: cellConfidence,
         });
 
         set({ primaryApp: newApp });

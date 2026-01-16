@@ -1,0 +1,133 @@
+{
+  "version": "1.0.0",
+  "createdAt": "2026-01-15T00:00:00Z",
+  "updatedAt": "2026-01-15T00:00:00Z",
+  "source": "default",
+  "primaryMatrix": {
+    "founder": {
+      "productive": {
+        "app": "cora",
+        "confidence": 0.7,
+        "reason": "Founders drowning in email need triage"
+      },
+      "automate": {
+        "app": "cora",
+        "confidence": 0.7,
+        "reason": "Email workflows are high-leverage"
+      },
+      "write": {
+        "app": "spiral",
+        "confidence": 0.6,
+        "reason": "Investor updates, blog posts, memos"
+      },
+      "trends": {
+        "app": "monologue",
+        "confidence": 0.5,
+        "reason": "Capture ideas quickly while multitasking"
+      }
+    },
+    "builder": {
+      "productive": {
+        "app": "sparkle",
+        "confidence": 0.7,
+        "reason": "Engineers have messy project folders"
+      },
+      "automate": {
+        "app": "sparkle",
+        "confidence": 0.7,
+        "reason": "Auto-organize build artifacts, repos"
+      },
+      "write": {
+        "app": "spiral",
+        "confidence": 0.6,
+        "reason": "Documentation, READMEs, RFCs"
+      },
+      "trends": {
+        "app": "monologue",
+        "confidence": 0.5,
+        "reason": "Voice notes while coding"
+      }
+    },
+    "writer": {
+      "productive": {
+        "app": "monologue",
+        "confidence": 0.7,
+        "reason": "Dictate drafts 3x faster than typing"
+      },
+      "automate": {
+        "app": "spiral",
+        "confidence": 0.6,
+        "reason": "AI writing workflows"
+      },
+      "write": {
+        "app": "spiral",
+        "confidence": 0.8,
+        "reason": "Core use case - AI writing assistant"
+      },
+      "trends": {
+        "app": "spiral",
+        "confidence": 0.6,
+        "reason": "Stay ahead with AI-assisted writing"
+      }
+    },
+    "designer": {
+      "productive": {
+        "app": "sparkle",
+        "confidence": 0.7,
+        "reason": "Organize design assets and versions"
+      },
+      "automate": {
+        "app": "sparkle",
+        "confidence": 0.7,
+        "reason": "Auto-organize project files"
+      },
+      "write": {
+        "app": "spiral",
+        "confidence": 0.6,
+        "reason": "Case studies, proposals, portfolios"
+      },
+      "trends": {
+        "app": "monologue",
+        "confidence": 0.5,
+        "reason": "Voice memos for design ideas"
+      }
+    },
+    "curious": {
+      "productive": {
+        "app": "monologue",
+        "confidence": 0.6,
+        "reason": "Low barrier - just talk"
+      },
+      "automate": {
+        "app": "cora",
+        "confidence": 0.6,
+        "reason": "Email is universal pain point"
+      },
+      "write": {
+        "app": "spiral",
+        "confidence": 0.6,
+        "reason": "Everyone writes something"
+      },
+      "trends": {
+        "app": "monologue",
+        "confidence": 0.6,
+        "reason": "Easy way to try AI"
+      }
+    }
+  },
+  "secondaryPreferences": {
+    "cora": {
+      "ordered": ["sparkle", "spiral", "monologue"]
+    },
+    "sparkle": {
+      "ordered": ["cora", "monologue", "spiral"]
+    },
+    "spiral": {
+      "ordered": ["monologue", "cora", "sparkle"]
+    },
+    "monologue": {
+      "ordered": ["spiral", "cora", "sparkle"]
+    }
+  },
+  "featureOverrides": []
+}

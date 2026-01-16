@@ -5,12 +5,17 @@ import Link from 'next/link';
 import { useStore } from '@/lib/store';
 import { APPS, App } from '@/lib/types';
 import { trackEvent } from '@/lib/events';
-import { useEffect, useState } from 'react';
+import { getPrimaryAppCell } from '@/lib/primary-app';
+import { getMatrixVersion, extractUserFeatures } from '@/lib/matrix';
+import { toCompactFeatures } from '@/lib/types/user-features';
+import { useEffect, useState, useRef } from 'react';
 
 export default function StartPage() {
   const router = useRouter();
   const { user, selectedPersona, selectedGoal, primaryApp, startFirstWin, switchPrimaryApp } = useStore();
   const [showOtherApps, setShowOtherApps] = useState(false);
+  const assignmentTracked = useRef<boolean>(false);
+  const pageLoadTime = useRef<number>(Date.now());
 
   // Redirect if not logged in or survey not completed
   useEffect(() => {
@@ -23,8 +28,27 @@ export default function StartPage() {
       trackEvent('onboarding_viewed', user.id, 'session', user.variant, {
         screen: 'start',
       });
+
+      // Track app assignment with user features (only once)
+      if (!assignmentTracked.current && primaryApp) {
+        assignmentTracked.current = true;
+
+        const matrixVersion = getMatrixVersion();
+        const cell = getPrimaryAppCell(selectedPersona, selectedGoal);
+        const userFeatures = extractUserFeatures(selectedPersona, selectedGoal);
+        const compactFeatures = toCompactFeatures(userFeatures);
+
+        trackEvent('app_assigned', user.id, 'session', user.variant, {
+          app: primaryApp,
+          persona: selectedPersona,
+          goal: selectedGoal,
+          matrix_version: matrixVersion,
+          cell_confidence: cell.confidence,
+          user_features: compactFeatures,
+        });
+      }
     }
-  }, [user, selectedPersona, selectedGoal, router]);
+  }, [user, selectedPersona, selectedGoal, router, primaryApp]);
 
   if (!user || !selectedPersona || !selectedGoal || !primaryApp) {
     return null;
@@ -115,7 +139,7 @@ export default function StartPage() {
                       <button
                         key={appId}
                         onClick={() => {
-                          switchPrimaryApp(appId, 'start');
+                          switchPrimaryApp(appId, 'start', { assignmentTimestamp: pageLoadTime.current });
                           setShowOtherApps(false);
                         }}
                         className="w-full p-3 bg-white border border-gray-200 rounded-lg hover:border-gray-400 transition-colors text-left flex items-center gap-3"
