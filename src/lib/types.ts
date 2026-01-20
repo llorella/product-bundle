@@ -43,9 +43,9 @@ export const CROSS_PROMPT_CONFIGS: CrossPromptConfig[] = [
     getPrompt: (artifacts) => ({
       headline: `You cleared ${artifacts.emailsProcessed || 10} emails`,
       subtext: artifacts.attachmentsSaved
-        ? `${artifacts.attachmentsSaved} had attachments—organize them in 30 seconds`
-        : 'Now organize the files piling up on your desktop',
-      cta: 'Organize files →',
+        ? `${artifacts.attachmentsSaved} had attachments worth organizing. Download Sparkle to sort them automatically.`
+        : 'Download Sparkle to organize the files piling up on your Mac.',
+      cta: 'Get Sparkle →',
     }),
   },
   {
@@ -55,7 +55,7 @@ export const CROSS_PROMPT_CONFIGS: CrossPromptConfig[] = [
       headline: `You organized ${artifacts.filesOrganized || 12} files`,
       subtext: artifacts.draftsFound
         ? `${artifacts.draftsFound} are unfinished drafts—pick one to complete`
-        : 'Found some drafts that need finishing? Polish them with AI',
+        : 'Found some drafts that need finishing? Polish them with AI.',
       cta: 'Finish a draft →',
     }),
   },
@@ -64,8 +64,8 @@ export const CROSS_PROMPT_CONFIGS: CrossPromptConfig[] = [
     toApp: 'monologue',
     getPrompt: (artifacts) => ({
       headline: `You wrote ${artifacts.wordCount || 150} words`,
-      subtext: 'Capture more ideas on the go—turn voice notes into drafts like this one',
-      cta: 'Try voice capture →',
+      subtext: 'Capture more ideas on the go with Monologue.',
+      cta: 'Get Monologue →',
     }),
   },
   {
@@ -73,7 +73,7 @@ export const CROSS_PROMPT_CONFIGS: CrossPromptConfig[] = [
     toApp: 'spiral',
     getPrompt: (artifacts) => ({
       headline: `You captured ${artifacts.ideasCaptured || 4} ideas`,
-      subtext: 'Turn your best idea into a polished draft in seconds',
+      subtext: 'Turn your best one into a polished draft.',
       cta: 'Write a draft →',
     }),
   },
@@ -89,6 +89,8 @@ export interface User {
   createdAt: string;
 }
 
+export type AppDistribution = 'web' | 'mac';
+
 export interface AppInfo {
   id: App;
   name: string;
@@ -96,6 +98,7 @@ export interface AppInfo {
   description: string;
   icon: string;
   color: string;
+  distribution: AppDistribution;
   firstWinTask: string;
   firstWinDuration: string;
 }
@@ -108,6 +111,7 @@ export const APPS: Record<App, AppInfo> = {
     description: 'An AI assistant that gets you to inbox zero on autopilot.',
     icon: '📧',
     color: 'bg-blue-500',
+    distribution: 'web',
     firstWinTask: 'Triage your first 10 emails',
     firstWinDuration: '60-90 seconds',
   },
@@ -118,6 +122,7 @@ export const APPS: Record<App, AppInfo> = {
     description: 'Turn messy folders into organization bliss.',
     icon: '✨',
     color: 'bg-purple-500',
+    distribution: 'mac',
     firstWinTask: 'Organize your first folder',
     firstWinDuration: '30-60 seconds',
   },
@@ -128,6 +133,7 @@ export const APPS: Record<App, AppInfo> = {
     description: 'Your AI writing assistant with taste—publish with confidence.',
     icon: '📝',
     color: 'bg-green-500',
+    distribution: 'web',
     firstWinTask: 'Generate your first draft',
     firstWinDuration: '60-90 seconds',
   },
@@ -138,6 +144,7 @@ export const APPS: Record<App, AppInfo> = {
     description: 'Effortless voice dictation—work 3x faster.',
     icon: '🎤',
     color: 'bg-orange-500',
+    distribution: 'mac',
     firstWinTask: 'Dictate and summarize your first note',
     firstWinDuration: '45-60 seconds',
   },

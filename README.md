@@ -1,48 +1,70 @@
 # Every A/B Experiment Demo
 
-Demand-driven bundle discovery experiment for [Every](https://every.to).
+A working A/B test for demand-driven bundle discovery at [Every](https://every.to). Built as a growth engineer application demonstrating experiment design, implementation, and statistical analysis.
 
 ## Quick Start
 
 ```bash
 npm install
-npm run dev    # http://localhost:3000
+npm run dev
 ```
 
-## What This Is
+Open http://localhost:3000
 
-A working A/B test comparing two onboarding approaches:
+## Testing the Experiment
 
-| Variant | Flow |
-|---------|------|
-| **Control** | Survey → 2 app recommendations → user chooses → handoff interstitial → self-directed |
-| **Treatment** | Survey → 1 assigned app → escape hatch available → guided first-win → contextual cross-sell |
-
-## Testing
-
-1. `/signup` → enter email, select variant (or Auto)
+### Control Flow (Current every.to behavior)
+1. Go to `/signup` → enter email → select **Control**
 2. Complete survey (persona + goal)
-3. Observe variant-specific flow
-4. `/dashboard` → view tracked events and metrics
+3. See **2 app recommendations** → user must choose
+4. Click an app → see handoff interstitial → land on app page
+5. No guided task, self-directed exploration
+
+### Treatment Flow (Hypothesis)
+1. Go to `/signup` → enter email → select **Treatment**
+2. Complete survey (persona + goal)
+3. See **1 assigned app** with first-win task preview
+4. Click "Get your first win" → complete guided task (30-60s)
+5. See contextual cross-activation prompt tied to task output
+6. Continue to second app or skip to bundle
+
+### View Results
+- `/dashboard` — Metrics, statistical analysis, event log
+- `/dashboard/matrix` — Persona×Goal→App assignment analysis
+- "Clear All Data" button resets for fresh testing
 
 ## Routes
 
 | Route | Purpose |
 |-------|---------|
+| `/` | Landing page (mirrors every.to) |
 | `/signup` | Email + variant selection |
 | `/survey` | Persona + goal questions |
-| `/recs` | Control: 2 apps + handoff interstitial |
-| `/start` | Treatment: 1 app + escape hatch |
-| `/app/[name]` | First-win task |
-| `/bundle` | Checklist |
-| `/dashboard` | Metrics + statistics |
+| `/recs` | Control: 2 app recommendations |
+| `/start` | Treatment: 1 app assignment + escape hatch |
+| `/app/[name]` | Mock product with first-win task |
+| `/bundle` | Checklist (10 items) |
+| `/dashboard` | Experiment metrics + statistics |
+
+## Key Files
+
+| File | What it does |
+|------|--------------|
+| `src/lib/store.ts` | Zustand state (user, survey, completions) |
+| `src/lib/events.ts` | Event tracking to localStorage |
+| `src/lib/primary-app.ts` | Persona×Goal→App matrix |
+| `src/lib/stats.ts` | Sample size calculator, p-values, CI |
+| `src/app/app/[appName]/page.tsx` | First-win tasks + cross-activation |
+| `src/app/dashboard/page.tsx` | Metrics visualization |
 
 ## Documentation
 
-- **[EXPERIMENT.md](./EXPERIMENT.md)** — Hypothesis, business case, design rationale
-- **[SPEC.md](./SPEC.md)** — Technical specification, metrics, rollout plan
-- **[AUDIT.md](./AUDIT.md)** — Original funnel audit
+| File | Content |
+|------|---------|
+| [EXPERIMENT.md](./EXPERIMENT.md) | Full experiment spec: hypothesis, metrics, statistical analysis, rollout plan |
+| [AUDIT.md](./AUDIT.md) | Original funnel audit of every.to |
+| [CLAUDE.md](./CLAUDE.md) | Development guidance for AI assistants |
 
 ## Tech Stack
 
-Next.js 14 / TypeScript / Tailwind / Zustand / Recharts / localStorage
+Next.js 14 · TypeScript · Tailwind CSS · Zustand · Recharts · localStorage

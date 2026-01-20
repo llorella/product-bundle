@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 ## Project Overview
 
 A/B experiment demo for Every (every.to) demonstrating **demand-driven bundle discovery**. Built as a growth engineer application showcasing rigorous experiment design.
@@ -12,7 +14,21 @@ A/B experiment demo for Every (every.to) demonstrating **demand-driven bundle di
 npm install    # Install dependencies
 npm run dev    # Start dev server at localhost:3000
 npm run build  # Production build
+npm run lint   # Run ESLint
 ```
+
+## The Products
+
+Every offers four AI tools with different distribution models:
+
+| Product | Type | Distribution |
+|---------|------|--------------|
+| Cora | Email Assistant | Web app |
+| Spiral | AI Writing | Web app |
+| Sparkle | File Organizer | Mac app (download required) |
+| Monologue | Voice Dictation | Mac app (download required) |
+
+This affects cross-activation: prompts to native apps acknowledge download friction rather than promising instant value.
 
 ## Workflow for Contributions
 
@@ -53,12 +69,13 @@ src/
 │   ├── bundle/               # Checklist UI
 │   └── dashboard/            # Experiment metrics + stats
 └── lib/
-    ├── types.ts              # Types + EXPERIMENT_METRICS definitions
+    ├── types.ts              # Types, app definitions, cross-activation prompts
     ├── store.ts              # Zustand state (user, survey, completions)
     ├── events.ts             # Event tracking to localStorage
     ├── assignment.ts         # Hash-based variant assignment
     ├── stats.ts              # Statistical utilities (sample size, significance)
-    └── primary-app.ts        # Persona×Goal→App matrix (HYPOTHESIS)
+    ├── primary-app.ts        # Persona×Goal→App matrix
+    └── matrix/               # Matrix config loading + device detection
 ```
 
 ## Key Files
@@ -66,7 +83,7 @@ src/
 | File | Purpose |
 |------|---------|
 | `src/lib/stats.ts` | Sample size calculator, p-values, confidence intervals |
-| `src/lib/types.ts` | `EXPERIMENT_METRICS` with primary/secondary/guardrail definitions |
+| `src/lib/types.ts` | App definitions (including distribution type), cross-activation prompts |
 | `src/lib/primary-app.ts` | Matrix mapping + rationale documentation |
 | `src/app/dashboard/page.tsx` | Metrics visualization with statistical analysis |
 | `src/app/app/[appName]/page.tsx` | First-win tasks + cross-activation flow |
@@ -75,30 +92,21 @@ src/
 
 **Hypothesis**: Users discover bundle value more effectively when adjacent products are surfaced at moments of accomplished value (demand-driven) rather than presented upfront as a menu.
 
-**Business Impact**: Multi-product users retain 3-4x better. This experiment targets the *mechanism* by which users become multi-product users.
-
 | Variant | Flow |
 |---------|------|
 | Control (Menu-Driven) | Survey → 2 app recommendations → user chooses → self-directed exploration |
 | Treatment (Demand-Driven) | Survey → 1 assigned app → guided first-win → contextual cross-sell tied to accomplishment |
 
-**Cross-Activation Prompts**: Treatment users see contextual prompts that reference their accomplishment:
-- After Cora: "You cleared 10 emails. 5 had attachments—organize them in 30 seconds."
-- After Sparkle: "You organized 12 files. 4 are unfinished drafts—pick one to complete."
-- After Spiral: "You wrote 150 words. Capture more ideas on the go with voice notes."
-- After Monologue: "You captured 4 ideas. Turn your best one into a polished draft."
+**Cross-Activation Prompts** (native app targets acknowledge download friction):
+- After Cora → Sparkle (native): "You cleared 10 emails. 5 had attachments worth organizing. Download Sparkle to sort them automatically."
+- After Sparkle → Spiral (web): "You organized 12 files. 4 are unfinished drafts—pick one to complete."
+- After Spiral → Monologue (native): "You wrote 150 words. Capture more ideas on the go with Monologue."
+- After Monologue → Spiral (web): "You captured 4 ideas. Turn your best one into a polished draft."
 
 **Metrics**:
 - **Primary**: Multi-Product Activation (7d) — % of users who complete core action in 2+ products within 7 days
 - **Secondary**: First Product Activation (24h), Time to First Value, Cross-Prompt CTR
-- **Guardrails**: Survey completion rate, First product activation rate, Escape hatch rate (treatment only)
-
-### Causal Design Note
-
-This experiment bundles three interventions: (1) single-path routing, (2) guided first-win, (3) contextual cross-activation prompts. This is intentional for a first test—we validate direction quickly. If Treatment wins, follow-up tests decompose:
-- **Test A**: Single-path + first-win only (no cross-prompt)
-- **Test B**: Current routing + cross-prompt only (isolate prompt impact)
-- **Test C**: Single-path only (isolate choice removal)
+- **Guardrails**: Survey completion rate, Escape hatch rate (treatment only, alert if >15%)
 
 ### Escape Hatch
 
@@ -109,32 +117,58 @@ Treatment users can switch apps via "Not what you need?" link. This:
 
 High escape rate (>15%) suggests matrix needs tuning. Low rate validates single-path approach.
 
+## Architecture
+
+### State Flow
+
+```
+User signup → Zustand store (persisted to localStorage)
+           → trackEvent() writes to localStorage events array
+           → Dashboard reads events and computes metrics
+```
+
+### Key Patterns
+
+1. **Variant Assignment**: Hash-based deterministic assignment in `src/lib/assignment.ts`. Can be overridden via UI for testing.
+
+2. **Event Tracking**: All user actions emit typed events via `trackEvent()` in `src/lib/events.ts`. Events stored in localStorage under `every_demo_events` key.
+
+3. **First-Win Tasks**: Each app in `src/app/app/[appName]/page.tsx` has a multi-step mock task. On completion, cross-activation prompts use `TaskArtifacts` from the completed task.
+
+4. **Matrix Config**: Static persona×goal→app mapping in `src/config/matrix.default.json`. Loaded via `src/lib/matrix/config.ts`.
+
 ## Tech Stack
 
 - Next.js 14 (App Router)
 - TypeScript
 - Tailwind CSS
-- Zustand (state management)
+- Zustand (state management, persisted to localStorage)
 - Recharts (charts)
-- localStorage (event persistence)
+- localStorage (event + state persistence)
 
 ## Production Considerations
 
+### Native App Attribution
+
+For native apps (Sparkle, Monologue), the download funnel has extra steps:
+1. `cross_prompt_clicked` — User clicked the prompt
+2. `app_store_redirected` — User reached download page
+3. `native_app_first_opened` — User launched the app (requires native SDK)
+4. `first_win_completed` — User completed the task
+
+This lets you diagnose where the funnel breaks for native vs web cross-activation.
+
 ### Cross-Domain Measurement
 
-Production Every likely involves separate product domains (cora.every.to, sparkle.every.to) with independent auth. For attribution:
+Production Every involves separate product domains with independent auth. For attribution:
 1. Assign `variant`, `user_id`, `primary_app` on every.to at signup
-2. Deep-link to product domain with short-lived **signed onboarding token**: `{user_id, variant, persona, goal, primary_app}`
+2. Deep-link to product domain with short-lived **signed onboarding token**
 3. Product app redeems token server-side, binds to local user, emits events with shared identifier
 4. ETL reconciles events into unified experiment table
-
-### Control Handoff Friction
-
-The demo includes a handoff interstitial for Control variant to simulate cross-domain friction ("Opening Sparkle... You'll complete setup in a new tab"). This increases realism without needing real SSO.
 
 ## Decision Log
 
 1. **Initial hypothesis**: Personalized checklist would increase engagement
 2. **Audit finding**: Real friction is *discovery mechanism*, not checklist content
 3. **Final design**: Single-path routing + guided first-win + contextual cross-activation
-4. **Bundled intentionally**: Speed to directional signal > causal purity (decomposition planned post-win)
+4. **Native app awareness**: Sparkle and Monologue are Mac apps; cross-activation prompts adjusted accordingly

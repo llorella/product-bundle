@@ -10,19 +10,5 @@ export {
   getMatrixSource,
 } from './config';
 
-// User feature extraction
-export {
-  extractDeviceInfo,
-  extractTimeContext,
-  extractAcquisitionContext,
-  extractUserFeatures,
-  captureAcquisitionContext,
-  getStoredAcquisitionContext,
-} from './features';
-
-// Heuristic computation
-export {
-  computeOptimizedMatrix,
-  compareMatrices,
-  getMatrixSummary,
-} from './heuristics';
+// Device detection (for native app routing)
+export { extractDeviceInfo } from './features';

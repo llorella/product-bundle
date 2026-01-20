@@ -6,8 +6,8 @@ import { useStore } from '@/lib/store';
 import { APPS, App } from '@/lib/types';
 import { trackEvent } from '@/lib/events';
 import { getPrimaryAppCell } from '@/lib/primary-app';
-import { getMatrixVersion, extractUserFeatures } from '@/lib/matrix';
-import { toCompactFeatures } from '@/lib/types/user-features';
+import { getMatrixVersion, extractDeviceInfo } from '@/lib/matrix';
+import { toCompactDeviceInfo } from '@/lib/types/user-features';
 import { useEffect, useState, useRef } from 'react';
 
 export default function StartPage() {
@@ -35,8 +35,7 @@ export default function StartPage() {
 
         const matrixVersion = getMatrixVersion();
         const cell = getPrimaryAppCell(selectedPersona, selectedGoal);
-        const userFeatures = extractUserFeatures(selectedPersona, selectedGoal);
-        const compactFeatures = toCompactFeatures(userFeatures);
+        const deviceInfo = extractDeviceInfo();
 
         trackEvent('app_assigned', user.id, 'session', user.variant, {
           app: primaryApp,
@@ -44,7 +43,7 @@ export default function StartPage() {
           goal: selectedGoal,
           matrix_version: matrixVersion,
           cell_confidence: cell.confidence,
-          user_features: compactFeatures,
+          device: toCompactDeviceInfo(deviceInfo),
         });
       }
     }

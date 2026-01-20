@@ -1,6 +1,5 @@
 import { Variant, Persona, Goal, App } from './types';
-import { HeuristicType } from './types/matrix';
-import { UserFeaturesCompact } from './types/user-features';
+import { DeviceInfoCompact } from './types/user-features';
 
 interface BaseEvent {
   event_id: string;
@@ -123,8 +122,7 @@ interface AppAssignedPayload {
   goal: Goal;
   matrix_version: string;
   cell_confidence: number;
-  feature_override_applied?: string;
-  user_features: UserFeaturesCompact;
+  device?: DeviceInfoCompact;
 }
 
 interface AppPickedPayload {
@@ -137,7 +135,6 @@ interface AppPickedPayload {
 interface MatrixVersionServedPayload {
   version: string;
   source: 'default' | 'api' | 'computed';
-  heuristic?: HeuristicType;
 }
 
 interface FeatureOverrideMatchedPayload {
